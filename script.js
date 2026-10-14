@@ -78,15 +78,24 @@ function showToast(message, type = 'info') {
 }
 
 // ==========================================================================
-// Auth Mode Switcher (Login vs Sign Up Tabs)
+// Auth Mode Switcher & Real-time Validation Engine
 // ==========================================================================
+let currentAuthMode = 'login'; // 'login' or 'signup'
+
 function switchAuthTab(mode) {
+  currentAuthMode = mode;
   const tabLogin = document.getElementById('tabLogin');
   const tabSignup = document.getElementById('tabSignup');
   const authTitle = document.getElementById('authTitle');
   const loginBtn = document.getElementById('loginBtn');
   const signupBtn = document.getElementById('signupBtn');
   const authSwitchPrompt = document.getElementById('authSwitchPrompt');
+  const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+  const passwordValidationBox = document.getElementById('passwordValidationBox');
+  const forgotPwdBtn = document.getElementById('forgotPwdBtn');
+
+  // Clear previous hints
+  clearAuthHints();
 
   if (mode === 'login') {
     tabLogin.classList.add('active');
@@ -94,6 +103,9 @@ function switchAuthTab(mode) {
     authTitle.innerText = 'Welcome Back';
     loginBtn.style.display = 'inline-flex';
     signupBtn.style.display = 'none';
+    if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
+    if (passwordValidationBox) passwordValidationBox.style.display = 'none';
+    if (forgotPwdBtn) forgotPwdBtn.style.display = 'inline';
     authSwitchPrompt.innerHTML = `Don't have an account? <a href="javascript:void(0)" onclick="switchAuthTab('signup')">Sign up</a>`;
   } else {
     tabSignup.classList.add('active');
@@ -101,8 +113,19 @@ function switchAuthTab(mode) {
     authTitle.innerText = 'Create an Account';
     loginBtn.style.display = 'none';
     signupBtn.style.display = 'inline-flex';
+    if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'flex';
+    if (passwordValidationBox) passwordValidationBox.style.display = 'block';
+    if (forgotPwdBtn) forgotPwdBtn.style.display = 'none';
     authSwitchPrompt.innerHTML = `Already have an account? <a href="javascript:void(0)" onclick="switchAuthTab('login')">Log in</a>`;
+    validatePasswordLive();
   }
+}
+
+function clearAuthHints() {
+  const emailHint = document.getElementById('authEmailHint');
+  const confirmHint = document.getElementById('authConfirmHint');
+  if (emailHint) emailHint.innerText = '';
+  if (confirmHint) confirmHint.innerText = '';
 }
 
 function togglePasswordVisibility(fieldId, btn) {
@@ -118,6 +141,127 @@ function togglePasswordVisibility(fieldId, btn) {
     icon.className = 'fa-regular fa-eye';
   }
 }
+
+// Strict Email Regex Validation
+function isValidEmail(email) {
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/;
+  return emailRegex.test(String(email).toLowerCase());
+}
+
+// Live Password Validation & Strength Meter
+function validatePasswordLive() {
+  const pwdInput = document.getElementById('authPassword');
+  const confirmInput = document.getElementById('authConfirmPassword');
+  const strengthBar = document.getElementById('pwdStrengthBar');
+  const strengthText = document.getElementById('pwdStrengthText');
+  const critLength = document.getElementById('critLength');
+  const critLetter = document.getElementById('critLetter');
+  const confirmHint = document.getElementById('authConfirmHint');
+
+  if (!pwdInput) return;
+  const pwd = pwdInput.value;
+
+  // Criteria Checks
+  const hasLength = pwd.length >= 6;
+  const hasLetter = /[a-zA-Z]/.test(pwd);
+  const hasNumber = /[0-9]/.test(pwd);
+  const hasBoth = hasLetter && hasNumber;
+
+  if (critLength) {
+    critLength.className = 'pwd-crit ' + (hasLength ? 'valid' : 'invalid');
+    critLength.innerHTML = `<i class="fa-solid ${hasLength ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> At least 6 characters`;
+  }
+
+  if (critLetter) {
+    critLetter.className = 'pwd-crit ' + (hasBoth ? 'valid' : 'invalid');
+    critLetter.innerHTML = `<i class="fa-solid ${hasBoth ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> Contains letters & numbers`;
+  }
+
+  // Calculate Strength
+  let score = 0;
+  if (hasLength) score++;
+  if (pwd.length >= 8) score++;
+  if (hasBoth) score++;
+  if (/[!@#$%^&*(),.?":{}|<>]/.test(pwd)) score++;
+
+  if (strengthBar && strengthText) {
+    if (pwd.length === 0) {
+      strengthBar.style.width = '0%';
+      strengthBar.style.background = 'transparent';
+      strengthText.innerText = 'Password strength: Waiting for input';
+      strengthText.style.color = 'var(--text-muted)';
+    } else if (score <= 1) {
+      strengthBar.style.width = '25%';
+      strengthBar.style.background = '#f43f5e';
+      strengthText.innerText = 'Password strength: Weak';
+      strengthText.style.color = '#f43f5e';
+    } else if (score === 2) {
+      strengthBar.style.width = '55%';
+      strengthBar.style.background = '#f59e0b';
+      strengthText.innerText = 'Password strength: Moderate';
+      strengthText.style.color = '#f59e0b';
+    } else {
+      strengthBar.style.width = '100%';
+      strengthBar.style.background = '#10b981';
+      strengthText.innerText = 'Password strength: Strong & Secure';
+      strengthText.style.color = '#10b981';
+    }
+  }
+
+  // Confirm Password Check
+  if (currentAuthMode === 'signup' && confirmInput && confirmHint) {
+    const confirmVal = confirmInput.value;
+    if (confirmVal.length > 0) {
+      if (confirmVal === pwd) {
+        confirmHint.innerText = '✓ Passwords match perfectly';
+        confirmHint.className = 'auth-field-hint valid';
+      } else {
+        confirmHint.innerText = '✗ Passwords do not match';
+        confirmHint.className = 'auth-field-hint invalid';
+      }
+    } else {
+      confirmHint.innerText = '';
+    }
+  }
+}
+
+// Live Email Validation
+function validateEmailLive() {
+  const emailInput = document.getElementById('authEmail');
+  const emailHint = document.getElementById('authEmailHint');
+  if (!emailInput || !emailHint) return;
+
+  const email = emailInput.value.trim();
+  if (email.length === 0) {
+    emailHint.innerText = '';
+    return;
+  }
+
+  if (isValidEmail(email)) {
+    emailHint.innerText = '✓ Valid email format';
+    emailHint.className = 'auth-field-hint valid';
+  } else {
+    emailHint.innerText = '✗ Please enter a valid email address';
+    emailHint.className = 'auth-field-hint invalid';
+  }
+}
+
+// Attach real-time input listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const emailInput = document.getElementById('authEmail');
+  const pwdInput = document.getElementById('authPassword');
+  const confirmInput = document.getElementById('authConfirmPassword');
+
+  if (emailInput) {
+    emailInput.addEventListener('input', validateEmailLive);
+  }
+  if (pwdInput) {
+    pwdInput.addEventListener('input', validatePasswordLive);
+  }
+  if (confirmInput) {
+    confirmInput.addEventListener('input', validatePasswordLive);
+  }
+});
 
 // ==========================================================================
 // Category Type Selector Notice
@@ -444,6 +588,7 @@ function getTransactionMonthKey(item) {
 auth.onAuthStateChanged(user => {
   const authSection = document.getElementById('authSection');
   const appSection = document.getElementById('appSection');
+  const emailVerifyNotice = document.getElementById('emailVerifyNotice');
 
   if (user) {
     currentUser = user;
@@ -456,6 +601,15 @@ auth.onAuthStateChanged(user => {
     const avatar = document.getElementById('userAvatar');
     if (avatar) {
       avatar.innerText = emailDisplay.charAt(0).toUpperCase();
+    }
+
+    // Email verification status banner
+    if (emailVerifyNotice) {
+      if (!user.emailVerified) {
+        emailVerifyNotice.style.display = 'flex';
+      } else {
+        emailVerifyNotice.style.display = 'none';
+      }
     }
 
     initMonthPickers();
@@ -472,27 +626,72 @@ auth.onAuthStateChanged(user => {
     activeRecurringRules = [];
     authSection.style.display = 'block';
     appSection.style.display = 'none';
+    if (emailVerifyNotice) emailVerifyNotice.style.display = 'none';
   }
 });
 
 // ==========================================================================
-// Auth Handlers (Signup, Login, Logout)
+// Auth Handlers (Signup, Login, Logout, Verification, Reset)
 // ==========================================================================
 function handleSignup() {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
+  const confirmPassword = document.getElementById('authConfirmPassword')?.value || '';
 
-  if (!email || password.length < 6) {
-    showToast("Please enter a valid email & password with at least 6 characters.", "error");
+  // 1. Email Format Validation
+  if (!email || !isValidEmail(email)) {
+    showToast("Please enter a valid email address (e.g. name@example.com)", "error");
+    document.getElementById('authEmail')?.focus();
     return;
   }
 
+  // 2. Password Strength Validation
+  if (password.length < 6) {
+    showToast("Password must be at least 6 characters long.", "error");
+    document.getElementById('authPassword')?.focus();
+    return;
+  }
+
+  const hasLetter = /[a-zA-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  if (!hasLetter || !hasNumber) {
+    showToast("Password must contain both letters and numbers for safety.", "error");
+    document.getElementById('authPassword')?.focus();
+    return;
+  }
+
+  // 3. Confirm Password Match Validation
+  if (password !== confirmPassword) {
+    showToast("Passwords do not match! Please verify your password.", "error");
+    document.getElementById('authConfirmPassword')?.focus();
+    return;
+  }
+
+  showToast("Creating your account...", "info");
+
   auth.createUserWithEmailAndPassword(email, password)
-    .then(() => {
-      showToast("Account created successfully! Welcome!", "success");
+    .then(userCredential => {
+      // Send Email Verification
+      userCredential.user.sendEmailVerification()
+        .then(() => {
+          showToast("📧 Verification email sent to " + email + "! Please check your inbox.", "success");
+        })
+        .catch(err => {
+          console.warn("Verification email notice:", err);
+        });
+
+      showToast("Account created successfully! Welcome to SmartFlow!", "success");
     })
     .catch(error => {
-      showToast("Signup Error: " + error.message, "error");
+      let msg = error.message;
+      if (error.code === 'auth/email-already-in-use') {
+        msg = "This email is already registered. Please log in instead.";
+      } else if (error.code === 'auth/invalid-email') {
+        msg = "The email address is invalid.";
+      } else if (error.code === 'auth/weak-password') {
+        msg = "The password is too weak. Please use a stronger password.";
+      }
+      showToast("Signup Error: " + msg, "error");
     });
 }
 
@@ -500,17 +699,72 @@ function handleLogin() {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
 
-  if (!email || !password) {
-    showToast("Please enter both email and password.", "error");
+  if (!email || !isValidEmail(email)) {
+    showToast("Please enter a valid email address.", "error");
+    document.getElementById('authEmail')?.focus();
     return;
   }
 
+  if (!password) {
+    showToast("Please enter your password.", "error");
+    document.getElementById('authPassword')?.focus();
+    return;
+  }
+
+  showToast("Signing in...", "info");
+
   auth.signInWithEmailAndPassword(email, password)
-    .then(() => {
-      showToast("Logged in successfully!", "success");
+    .then(userCredential => {
+      showToast("Logged in successfully! Welcome back!", "success");
+      if (!userCredential.user.emailVerified) {
+        showToast("⚠️ Note: Your email is not verified yet. You can resend verification from the top banner.", "info");
+      }
     })
     .catch(error => {
-      showToast("Login Error: " + error.message, "error");
+      let msg = error.message;
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        msg = "Invalid email or password. Please check your credentials.";
+      } else if (error.code === 'auth/too-many-requests') {
+        msg = "Too many failed attempts. Please wait a moment or reset your password.";
+      }
+      showToast("Login Error: " + msg, "error");
+    });
+}
+
+function handleForgotPassword() {
+  const emailInput = document.getElementById('authEmail');
+  let email = emailInput ? emailInput.value.trim() : '';
+
+  if (!email || !isValidEmail(email)) {
+    email = prompt("Enter your registered email address to receive a password reset link:", email || "");
+  }
+
+  if (!email || !isValidEmail(email.trim())) {
+    showToast("Please provide a valid email address to reset password.", "error");
+    return;
+  }
+
+  auth.sendPasswordResetEmail(email.trim())
+    .then(() => {
+      showToast(`📬 Password reset link sent to ${email}! Please check your email inbox.`, "success");
+    })
+    .catch(error => {
+      showToast("Reset Error: " + error.message, "error");
+    });
+}
+
+function resendVerificationEmail() {
+  if (!currentUser) {
+    showToast("No active user session found.", "error");
+    return;
+  }
+
+  currentUser.sendEmailVerification()
+    .then(() => {
+      showToast("✅ Verification email resent! Please check your inbox & spam folder.", "success");
+    })
+    .catch(error => {
+      showToast("Error sending verification: " + error.message, "error");
     });
 }
 
@@ -1478,6 +1732,10 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
 // Modernized Excel Spreadsheet (.xlsx) Exporter
 // ==========================================================================
 
+// ==========================================================================
+// Colorful & Executive Modern Excel Spreadsheet (.xlsx) Exporter
+// ==========================================================================
+
 function exportTransactionsToExcel() {
   if (typeof XLSX === 'undefined') {
     showToast("Excel export engine is loading, please try in a moment...", "error");
@@ -1504,24 +1762,48 @@ function exportTransactionsToExcel() {
   });
   const net = totalIncome - totalExpense;
   const savingsRate = totalIncome > 0 ? ((net / totalIncome) * 100).toFixed(1) + '%' : '0.0%';
-  const healthStatus = net < 0 ? 'Deficit Alert' : (totalIncome > 0 && (net / totalIncome) >= 0.2 ? 'Healthy Saver' : 'Low Savings');
+  const healthStatus = net < 0 ? 'Deficit Alert (Over budget)' : (totalIncome > 0 && (net / totalIncome) >= 0.2 ? 'Healthy Saver (Target met)' : 'Low Savings (Needs audit)');
   const monthLabel = formatMonthLabel(activeMonthKey);
   const exportTimestamp = new Date().toLocaleString('en-GB');
 
   // Create a new Workbook
   const wb = XLSX.utils.book_new();
 
+  // Helper for applying styles to cells safely
+  function setCellStyle(ws, r, c, style) {
+    const ref = XLSX.utils.encode_cell({ r, c });
+    if (!ws[ref]) {
+      ws[ref] = { t: 's', v: '' };
+    }
+    ws[ref].s = Object.assign({}, ws[ref].s || {}, style);
+  }
+
+  // Common Border Styles
+  const borderThinLight = {
+    top: { style: "thin", color: { rgb: "E2E8F0" } },
+    bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+    left: { style: "thin", color: { rgb: "E2E8F0" } },
+    right: { style: "thin", color: { rgb: "E2E8F0" } }
+  };
+
+  const borderMediumIndigo = {
+    top: { style: "medium", color: { rgb: "4338CA" } },
+    bottom: { style: "medium", color: { rgb: "4338CA" } },
+    left: { style: "thin", color: { rgb: "4338CA" } },
+    right: { style: "thin", color: { rgb: "4338CA" } }
+  };
+
   // -------------------------------------------------------------
-  // Sheet 1: Transactions History
+  // Sheet 1: Transactions History (Full Color Theme)
   // -------------------------------------------------------------
   const sheet1Data = [
-    ["SMARTFLOW EXPENSE TRACKER - FINANCIAL REPORT"],
-    ["Period:", monthLabel, "", "Exported On:", exportTimestamp],
-    [""],
-    ["EXECUTIVE FINANCIAL SUMMARY"],
-    ["Total Income (PKR):", totalIncome, "Total Expense (PKR):", totalExpense, "Net Balance (PKR):", net],
-    ["Savings Rate:", savingsRate, "Financial Health Status:", healthStatus],
-    [""],
+    ["SMARTFLOW EXPENSE TRACKER - EXECUTIVE REPORT", "", "", "", "", "", ""],
+    ["Target Period:", monthLabel, "", "Exported On:", exportTimestamp, "", ""],
+    ["", "", "", "", "", "", ""],
+    ["EXECUTIVE FINANCIAL SUMMARY", "", "", "", "", "", ""],
+    ["Total Income (PKR):", totalIncome, "Total Expense (PKR):", totalExpense, "Net Balance (PKR):", net, ""],
+    ["Savings Rate:", savingsRate, "Financial Health Status:", healthStatus, "", "", ""],
+    ["", "", "", "", "", "", ""],
     ["#", "Date & Time", "Title / Description", "Category", "Amount (PKR)", "Cashflow", "Month Key"]
   ];
 
@@ -1533,7 +1815,7 @@ function exportTransactionsToExcel() {
       catText = 'Income (IN)';
       flowSign = `+ Rs. ${(tx.amount || 0).toLocaleString()}`;
     } else if (tx.type === 'PERMANENT') {
-      catText = 'Permanent / Fixed Outflow';
+      catText = 'Permanent Outflow';
     }
 
     sheet1Data.push([
@@ -1549,21 +1831,129 @@ function exportTransactionsToExcel() {
 
   const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
 
-  // Set spacious column widths for Sheet 1
+  // Set merged header banners
+  ws1['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // Title Banner
+    { s: { r: 3, c: 0 }, e: { r: 3, c: 6 } }  // Summary Header
+  ];
+
+  // Set spacious column widths
   ws1['!cols'] = [
     { wch: 6 },   // #
     { wch: 24 },  // Date & Time
     { wch: 32 },  // Title
-    { wch: 25 },  // Category
-    { wch: 16 },  // Amount
-    { wch: 18 },  // Cashflow
-    { wch: 12 }   // Month
+    { wch: 22 },  // Category
+    { wch: 18 },  // Amount
+    { wch: 20 },  // Cashflow
+    { wch: 14 }   // Month
   ];
+
+  // 1. Style Main Title Banner (Row 0)
+  for (let c = 0; c <= 6; c++) {
+    setCellStyle(ws1, 0, c, {
+      fill: { fgColor: { rgb: "1E1B4B" } }, // Deep Navy Indigo
+      font: { name: "Calibri", sz: 14, bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    });
+  }
+
+  // 2. Style Period & Metadata (Row 1)
+  for (let c = 0; c <= 6; c++) {
+    setCellStyle(ws1, 1, c, {
+      fill: { fgColor: { rgb: "F1F5F9" } },
+      font: { name: "Calibri", sz: 10, bold: true, color: { rgb: "334155" } },
+      alignment: { vertical: "center" }
+    });
+  }
+
+  // 3. Style Executive Summary Title (Row 3)
+  for (let c = 0; c <= 6; c++) {
+    setCellStyle(ws1, 3, c, {
+      fill: { fgColor: { rgb: "4F46E5" } }, // Vibrant Indigo Accent
+      font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    });
+  }
+
+  // 4. Style Metrics Row (Row 4)
+  // Income Metric (Cols 0-1)
+  setCellStyle(ws1, 4, 0, { fill: { fgColor: { rgb: "D1FAE5" } }, font: { bold: true, color: { rgb: "065F46" } } });
+  setCellStyle(ws1, 4, 1, { fill: { fgColor: { rgb: "D1FAE5" } }, font: { bold: true, color: { rgb: "065F46" }, sz: 12 }, alignment: { horizontal: "right" } });
+  // Expense Metric (Cols 2-3)
+  setCellStyle(ws1, 4, 2, { fill: { fgColor: { rgb: "FFE4E6" } }, font: { bold: true, color: { rgb: "9F1239" } } });
+  setCellStyle(ws1, 4, 3, { fill: { fgColor: { rgb: "FFE4E6" } }, font: { bold: true, color: { rgb: "9F1239" }, sz: 12 }, alignment: { horizontal: "right" } });
+  // Balance Metric (Cols 4-5)
+  setCellStyle(ws1, 4, 4, { fill: { fgColor: { rgb: "DBEAFE" } }, font: { bold: true, color: { rgb: "1E40AF" } } });
+  setCellStyle(ws1, 4, 5, { fill: { fgColor: { rgb: "DBEAFE" } }, font: { bold: true, color: { rgb: "1E40AF" }, sz: 12 }, alignment: { horizontal: "right" } });
+  setCellStyle(ws1, 4, 6, { fill: { fgColor: { rgb: "DBEAFE" } } });
+
+  // 5. Style Savings Rate & Status (Row 5)
+  for (let c = 0; c <= 6; c++) {
+    setCellStyle(ws1, 5, c, {
+      fill: { fgColor: { rgb: "FEF3C7" } }, // Soft Amber
+      font: { bold: true, color: { rgb: "92400E" } },
+      alignment: { vertical: "center" }
+    });
+  }
+
+  // 6. Style Table Headers (Row 7)
+  for (let c = 0; c <= 6; c++) {
+    setCellStyle(ws1, 7, c, {
+      fill: { fgColor: { rgb: "312E81" } }, // Deep Midnight Indigo
+      font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      border: borderMediumIndigo
+    });
+  }
+
+  // 7. Style Each Data Row (Row 8+)
+  monthFiltered.forEach((tx, idx) => {
+    const r = 8 + idx;
+    let rowBg = "F8FAFC"; // default
+    let textRgb = "0F172A";
+    let flowRgb = "0F172A";
+
+    if (tx.type === 'IN') {
+      rowBg = "F0FDF4"; // Fresh Light Green
+      textRgb = "065F46";
+      flowRgb = "059669";
+    } else if (tx.type === 'PERMANENT') {
+      rowBg = "FFFBEB"; // Light Amber
+      textRgb = "92400E";
+      flowRgb = "D97706";
+    } else {
+      rowBg = "FFF1F2"; // Soft Light Red/Rose
+      textRgb = "9F1239";
+      flowRgb = "E11D48";
+    }
+
+    // Apply color and borders across the row
+    for (let c = 0; c <= 6; c++) {
+      let align = "left";
+      if (c === 0 || c === 6) align = "center";
+      if (c === 1 || c === 3) align = "center";
+      if (c === 4 || c === 5) align = "right";
+
+      let isBold = (c === 4 || c === 5 || c === 3);
+
+      setCellStyle(ws1, r, c, {
+        fill: { fgColor: { rgb: rowBg } },
+        font: {
+          name: "Calibri",
+          sz: 10,
+          bold: isBold,
+          color: { rgb: (c === 4 || c === 5) ? flowRgb : textRgb }
+        },
+        alignment: { horizontal: align, vertical: "center" },
+        border: borderThinLight
+      });
+    }
+  });
 
   XLSX.utils.book_append_sheet(wb, ws1, "Transactions History");
 
   // -------------------------------------------------------------
-  // Sheet 2: Month-End Financial Advice & Savings Plan
+  // Sheet 2: Month-End Financial Advice & Savings Plan (Rich Purple Theme)
   // -------------------------------------------------------------
   const needsBudget = Math.round(totalIncome * 0.5);
   const wantsBudget = Math.round(totalIncome * 0.3);
@@ -1584,34 +1974,114 @@ function exportTransactionsToExcel() {
   const dailyCut = Math.max(0, baseDailyCap - adjustedDailyCap);
 
   const sheet2Data = [
-    ["SMARTFLOW - MONTH-END SAVINGS & BUDGET ADVISOR"],
-    ["Target Period:", monthLabel, "", "Generated At:", exportTimestamp],
-    [""],
-    ["1. THE 50 / 30 / 20 BUDGET DISTRIBUTION TARGETS"],
+    ["SMARTFLOW - MONTH-END SAVINGS & BUDGET ADVISOR", "", "", ""],
+    ["Target Period:", monthLabel, "Generated At:", exportTimestamp],
+    ["", "", "", ""],
+    ["1. THE 50 / 30 / 20 BUDGET DISTRIBUTION TARGETS", "", "", ""],
     ["Budget Bucket", "Recommended %", "Target Amount (PKR)", "Description / Purpose"],
     ["Needs (Essentials)", "50% max", needsBudget, "Rent, groceries, utility bills, transportation"],
     ["Wants (Lifestyle)", "30% max", wantsBudget, "Dining out, entertainment, shopping, subscriptions"],
     ["Savings (Future)", "20% min", savingsBudget, "Emergency reserve, investments, wealth accumulation"],
-    [""],
-    ["2. DAILY BUDGET & SPENDING PACING GUIDELINES"],
-    ["Base Daily Spend Cap:", `Rs. ${baseDailyCap.toLocaleString()} / day`, "(Safe allowance to maintain 20% savings)"],
-    ["Current Daily Pace Status:", dailyCut > 0 ? `Over Cap Pace: Cut Rs. ${dailyCut.toLocaleString()} / day needed` : "Within Cap: Spending pace is safe", ""],
-    ["Adjusted Daily Cap for Remaining Days:", `Rs. ${adjustedDailyCap.toLocaleString()} / day`, `(${remainingDays} days remaining to balance budget)`],
-    [""],
-    ["3. ACTIONABLE MONEY-SAVING RULES & ADVICE"],
-    ["Rule 1: Pay Yourself First", `Salary aate hi foran kam az kam 20% (Rs. ${savingsBudget.toLocaleString()}) alag account mein transfer karein.`],
-    ["Rule 2: 72-Hour Rule", "Ghair zaroori impulse purchase karne se pehle 72 ghante intezar karein."],
-    ["Rule 3: Daily Cap Discipline", dailyCut > 0 ? `Cap pura karne ke liye rozana Rs. ${dailyCut.toLocaleString()} kami karein taake month-end balance ho sake.` : "Apne rozana kharche ko daily cap ke andar rakhein."],
-    ["Rule 4: Emergency Fund", `Kam az kam 3 mahine ke kharchon (Rs. ${(totalExpense * 3).toLocaleString()}) ka emergency buffer maintain karein.`]
+    ["", "", "", ""],
+    ["2. DAILY BUDGET & SPENDING PACING GUIDELINES", "", "", ""],
+    ["Base Daily Spend Cap:", `Rs. ${baseDailyCap.toLocaleString()} / day`, "(Safe allowance to maintain 20% savings)", ""],
+    ["Current Daily Pace Status:", dailyCut > 0 ? `Over Cap Pace: Cut Rs. ${dailyCut.toLocaleString()} / day needed` : "Within Cap: Spending pace is safe", "", ""],
+    ["Adjusted Daily Cap for Remaining Days:", `Rs. ${adjustedDailyCap.toLocaleString()} / day`, `(${remainingDays} days remaining to balance budget)`, ""],
+    ["", "", "", ""],
+    ["3. ACTIONABLE MONEY-SAVING RULES & ADVICE", "", "", ""],
+    ["Rule 1: Pay Yourself First", `Salary aate hi foran kam az kam 20% (Rs. ${savingsBudget.toLocaleString()}) alag account mein transfer karein.`, "", ""],
+    ["Rule 2: 72-Hour Rule", "Ghair zaroori impulse purchase karne se pehle 72 ghante intezar karein.", "", ""],
+    ["Rule 3: Daily Cap Discipline", dailyCut > 0 ? `Cap pura karne ke liye rozana Rs. ${dailyCut.toLocaleString()} kami karein taake month-end balance ho sake.` : "Apne rozana kharche ko daily cap ke andar rakhein.", "", ""],
+    ["Rule 4: Emergency Fund", `Kam az kam 3 mahine ke kharchon (Rs. ${(totalExpense * 3).toLocaleString()}) ka emergency buffer maintain karein.`, "", ""]
   ];
 
   const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
-  ws2['!cols'] = [
-    { wch: 28 },
-    { wch: 20 },
-    { wch: 25 },
-    { wch: 60 }
+  ws2['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, // Sheet 2 Banner
+    { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } }, // 50/30/20 Banner
+    { s: { r: 9, c: 0 }, e: { r: 9, c: 3 } }, // Daily Pacing Banner
+    { s: { r: 14, c: 0 }, e: { r: 14, c: 3 } } // Actionable Rules Banner
   ];
+
+  ws2['!cols'] = [
+    { wch: 30 },
+    { wch: 22 },
+    { wch: 25 },
+    { wch: 65 }
+  ];
+
+  // Sheet 2 Styles
+  // Main Title
+  for (let c = 0; c <= 3; c++) {
+    setCellStyle(ws2, 0, c, {
+      fill: { fgColor: { rgb: "581C87" } }, // Deep Royal Purple
+      font: { name: "Calibri", sz: 13, bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    });
+  }
+
+  // 50/30/20 Header
+  for (let c = 0; c <= 3; c++) {
+    setCellStyle(ws2, 3, c, {
+      fill: { fgColor: { rgb: "7C3AED" } },
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    });
+  }
+
+  // Table Columns Header (Row 4)
+  for (let c = 0; c <= 3; c++) {
+    setCellStyle(ws2, 4, c, {
+      fill: { fgColor: { rgb: "EDE9FE" } },
+      font: { bold: true, color: { rgb: "4C1D95" } },
+      border: borderThinLight
+    });
+  }
+
+  // Needs, Wants, Savings rows
+  setCellStyle(ws2, 5, 0, { fill: { fgColor: { rgb: "ECFDF5" } }, font: { bold: true, color: { rgb: "065F46" } }, border: borderThinLight });
+  setCellStyle(ws2, 5, 1, { fill: { fgColor: { rgb: "ECFDF5" } }, border: borderThinLight });
+  setCellStyle(ws2, 5, 2, { fill: { fgColor: { rgb: "ECFDF5" } }, font: { bold: true, color: { rgb: "065F46" } }, alignment: { horizontal: "right" }, border: borderThinLight });
+  setCellStyle(ws2, 5, 3, { fill: { fgColor: { rgb: "ECFDF5" } }, border: borderThinLight });
+
+  setCellStyle(ws2, 6, 0, { fill: { fgColor: { rgb: "FFFBEB" } }, font: { bold: true, color: { rgb: "92400E" } }, border: borderThinLight });
+  setCellStyle(ws2, 6, 1, { fill: { fgColor: { rgb: "FFFBEB" } }, border: borderThinLight });
+  setCellStyle(ws2, 6, 2, { fill: { fgColor: { rgb: "FFFBEB" } }, font: { bold: true, color: { rgb: "92400E" } }, alignment: { horizontal: "right" }, border: borderThinLight });
+  setCellStyle(ws2, 6, 3, { fill: { fgColor: { rgb: "FFFBEB" } }, border: borderThinLight });
+
+  setCellStyle(ws2, 7, 0, { fill: { fgColor: { rgb: "EFF6FF" } }, font: { bold: true, color: { rgb: "1E40AF" } }, border: borderThinLight });
+  setCellStyle(ws2, 7, 1, { fill: { fgColor: { rgb: "EFF6FF" } }, border: borderThinLight });
+  setCellStyle(ws2, 7, 2, { fill: { fgColor: { rgb: "EFF6FF" } }, font: { bold: true, color: { rgb: "1E40AF" } }, alignment: { horizontal: "right" }, border: borderThinLight });
+  setCellStyle(ws2, 7, 3, { fill: { fgColor: { rgb: "EFF6FF" } }, border: borderThinLight });
+
+  // Section 2 Daily Pacing Banner
+  for (let c = 0; c <= 3; c++) {
+    setCellStyle(ws2, 9, c, {
+      fill: { fgColor: { rgb: "4338CA" } },
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    });
+  }
+
+  // Section 3 Rules Banner
+  for (let c = 0; c <= 3; c++) {
+    setCellStyle(ws2, 14, c, {
+      fill: { fgColor: { rgb: "047857" } }, // Emerald Green
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    });
+  }
+
+  // Actionable Rules rows styling
+  for (let r = 15; r <= 18; r++) {
+    for (let c = 0; c <= 3; c++) {
+      setCellStyle(ws2, r, c, {
+        fill: { fgColor: { rgb: r % 2 === 0 ? "F8FAFC" : "FFFFFF" } },
+        font: { name: "Calibri", sz: 10, bold: c === 0, color: { rgb: c === 0 ? "065F46" : "334155" } },
+        border: borderThinLight
+      });
+    }
+  }
 
   XLSX.utils.book_append_sheet(wb, ws2, "Savings & Budget Advice");
 
@@ -1621,5 +2091,5 @@ function exportTransactionsToExcel() {
   const safeFilename = `SmartFlow_${activeMonthKey === 'ALL' ? 'AllTime' : activeMonthKey}_Report.xlsx`;
   XLSX.writeFile(wb, safeFilename);
 
-  showToast(`📊 Modernized Excel file downloaded: ${safeFilename}`, 'success');
+  showToast(`📊 Colorful Executive Excel Report downloaded: ${safeFilename}`, 'success');
 }

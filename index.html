@@ -2,8 +2,16 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Smart Expense & Income Tracker</title>
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <meta name="theme-color" content="#0B0F19">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SmartFlow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
   
   <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,17 +24,18 @@
   <!-- Favicon & App Icons -->
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
   
-  <!-- Custom Modern CSS -->
-  <link rel="stylesheet" href="style.css">
+  <!-- Custom Modern CSS (v2.3 Cache Busting) -->
+  <link rel="stylesheet" href="style.css?v=2.3">
   
   <!-- Firebase SDKs (v10 Compat Mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   
-  <!-- SheetJS Library for Modern Excel (.xlsx) Export -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS with Full Cell Styling Support (xlsx-js-style) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
 
@@ -71,22 +80,51 @@
     
     <h3 id="authTitle" class="form-section-title">Welcome Back</h3>
     
-    <form onsubmit="event.preventDefault();" class="auth-form">
+    <form onsubmit="event.preventDefault();" class="auth-form" id="mainAuthForm">
+      <!-- Email Field -->
       <div class="form-group">
         <label for="authEmail"><i class="fa-regular fa-envelope"></i> Email Address</label>
         <div class="input-wrapper">
           <input type="email" id="authEmail" placeholder="name@example.com" required autocomplete="email">
         </div>
+        <span class="auth-field-hint" id="authEmailHint"></span>
       </div>
       
+      <!-- Password Field -->
       <div class="form-group">
-        <label for="authPassword"><i class="fa-solid fa-lock"></i> Password</label>
+        <div class="label-with-action">
+          <label for="authPassword"><i class="fa-solid fa-lock"></i> Password</label>
+          <a href="javascript:void(0)" class="forgot-pwd-link" id="forgotPwdBtn" onclick="handleForgotPassword()">Forgot?</a>
+        </div>
         <div class="input-wrapper">
           <input type="password" id="authPassword" placeholder="Minimum 6 characters" required autocomplete="current-password">
           <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility('authPassword', this)" title="Show/Hide Password">
             <i class="fa-regular fa-eye"></i>
           </button>
         </div>
+        <!-- Live Password Strength / Requirements (Shown primarily in Signup mode) -->
+        <div class="password-validation-box" id="passwordValidationBox" style="display: none;">
+          <div class="pwd-strength-meter">
+            <div class="pwd-strength-bar" id="pwdStrengthBar"></div>
+          </div>
+          <span class="pwd-strength-text" id="pwdStrengthText">Password strength: Weak</span>
+          <div class="pwd-criteria-list">
+            <span class="pwd-crit" id="critLength"><i class="fa-solid fa-circle-xmark"></i> At least 6 characters</span>
+            <span class="pwd-crit" id="critLetter"><i class="fa-solid fa-circle-xmark"></i> Contains letters & numbers</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm Password Field (Only shown in Signup mode) -->
+      <div class="form-group" id="confirmPasswordGroup" style="display: none;">
+        <label for="authConfirmPassword"><i class="fa-solid fa-lock-open"></i> Confirm Password</label>
+        <div class="input-wrapper">
+          <input type="password" id="authConfirmPassword" placeholder="Re-enter your password" autocomplete="new-password">
+          <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility('authConfirmPassword', this)" title="Show/Hide Password">
+            <i class="fa-regular fa-eye"></i>
+          </button>
+        </div>
+        <span class="auth-field-hint" id="authConfirmHint"></span>
       </div>
 
       <div class="auth-actions">
@@ -130,6 +168,17 @@
         </button>
       </div>
     </header>
+
+    <!-- Email Verification Notice Banner (Shown if email is unverified) -->
+    <div id="emailVerifyNotice" class="email-verify-banner" style="display: none;">
+      <div class="banner-content">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>Your email is not verified yet. Please verify to secure your account.</span>
+      </div>
+      <button type="button" class="btn-verify-action" onclick="resendVerificationEmail()">
+        <i class="fa-solid fa-paper-plane"></i> Resend Verification
+      </button>
+    </div>
 
     <!-- Month Selection & Filter Navigation Bar -->
     <div class="month-selector-bar">
@@ -414,12 +463,14 @@
         </div>
 
         <div class="form-group form-group-date">
-          <label for="transactionDate"><i class="fa-regular fa-calendar-days"></i> Transaction Date</label>
-          <div class="input-wrapper input-date-wrapper" onclick="openDatePicker('transactionDate')">
-            <input type="date" id="transactionDate" title="Choose transaction date">
-            <button type="button" class="btn-today-pill" onclick="event.stopPropagation(); setTodayDate();" title="Set to Today">
+          <div class="label-with-action">
+            <label for="transactionDate"><i class="fa-regular fa-calendar-days"></i> Transaction Date</label>
+            <button type="button" class="btn-today-pill" onclick="setTodayDate()" title="Set to Today's Date">
               <i class="fa-solid fa-clock-rotate-left"></i> Today
             </button>
+          </div>
+          <div class="input-wrapper input-date-wrapper" onclick="openDatePicker('transactionDate')">
+            <input type="date" id="transactionDate" title="Choose transaction date">
           </div>
         </div>
       </div>
@@ -526,6 +577,20 @@
 
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=2.2"></script>
+  
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=2.2')
+          .then(reg => {
+            reg.update(); // Force immediate update
+            console.log('SmartFlow PWA ServiceWorker active:', reg.scope);
+          })
+          .catch(err => console.log('SmartFlow PWA registration notice:', err));
+      });
+    }
+  </script>
 </body>
 </html>

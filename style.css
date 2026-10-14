@@ -409,6 +409,142 @@ body {
   text-decoration: underline;
 }
 
+/* Auth Label with Action (e.g. Forgot Password) */
+.label-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.forgot-pwd-link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--brand-primary);
+  text-decoration: none;
+  transition: opacity var(--trans-fast);
+}
+
+.forgot-pwd-link:hover {
+  text-decoration: underline;
+  opacity: 0.85;
+}
+
+/* Auth Input Validation Hints */
+.auth-field-hint {
+  font-size: 0.76rem;
+  font-weight: 600;
+  margin-top: 4px;
+  display: block;
+  transition: all var(--trans-fast);
+}
+
+.auth-field-hint.valid {
+  color: #10b981;
+}
+
+.auth-field-hint.invalid {
+  color: #f43f5e;
+}
+
+/* Password Validation Box */
+.password-validation-box {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pwd-strength-meter {
+  height: 5px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.pwd-strength-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 10px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.pwd-strength-text {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.pwd-criteria-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pwd-crit {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color var(--trans-fast);
+}
+
+.pwd-crit.valid {
+  color: #10b981;
+}
+
+.pwd-crit.invalid {
+  color: #f43f5e;
+}
+
+/* Email Verification Alert Banner */
+.email-verify-banner {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.email-verify-banner .banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f59e0b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.btn-verify-action {
+  background: #f59e0b;
+  color: #0b0f19;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity var(--trans-fast);
+}
+
+.btn-verify-action:hover {
+  opacity: 0.9;
+}
+
 /* ==========================================================================
    INPUTS & FORM CONTROLS
    ========================================================================== */
@@ -472,7 +608,7 @@ select:focus {
 
 .input-date-wrapper input[type="date"] {
   cursor: pointer;
-  padding-right: 76px;
+  padding: 12px 14px;
   font-family: var(--font-sans);
   font-weight: 600;
 }
@@ -499,30 +635,29 @@ select:focus {
   filter: invert(1);
 }
 
-/* Quick Today Pill Button inside Date input */
+/* Quick Today Pill Button placed neatly in label row */
 .btn-today-pill {
-  position: absolute;
-  right: 8px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  background: var(--bg-tag);
-  border: 1px solid var(--border-color);
+  position: static;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
   color: var(--brand-primary);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   cursor: pointer;
   transition: all var(--trans-fast);
-  line-height: 1;
+  line-height: 1.4;
 }
 
 .btn-today-pill:hover {
   background: var(--brand-primary);
   color: #ffffff;
   border-color: var(--brand-primary);
-  transform: scale(1.05);
+  transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
 }
 
@@ -1573,74 +1708,7 @@ td:nth-child(2) {
   font-size: 0.85rem;
 }
 
-/* ==========================================================================
-   RESPONSIVE DESIGN (Tablets & Mobile)
-   ========================================================================== */
 
-@media (max-width: 768px) {
-  body {
-    padding: 20px 12px 40px;
-  }
-
-  .container {
-    padding: 24px 18px;
-    border-radius: 20px;
-  }
-
-  .summary-box {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .header-bar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .user-meta-bar {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .table-filters {
-    width: 100%;
-  }
-
-  .filter-search-box {
-    flex: 1;
-  }
-
-  .filter-search-box input {
-    width: 100%;
-  }
-
-  .advisor-quick-metrics {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .daily-cap-stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .advisor-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .advisor-quick-metrics {
-    grid-template-columns: 1fr;
-  }
-
-  .daily-cap-stats-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ==========================================================================
    SMART SAVINGS & MONTH-END FINANCIAL ADVISOR
@@ -2408,10 +2476,283 @@ button:hover::after,
   opacity: 1;
 }
 
-/* Hide on touch-only mobile screens */
+/* ==========================================================================
+   TOUCH & MOBILE CURSOR OPTIMIZATION
+   ========================================================================== */
 @media (hover: none) and (pointer: coarse) {
   .custom-cursor-dot,
   .custom-cursor-ring {
     display: none !important;
+  }
+}
+
+/* ==========================================================================
+   COMPREHENSIVE RESPONSIVE DESIGN (Tablets & Mobile Phones)
+   Placed at end of file to guarantee cascade override on all screen sizes
+   ========================================================================== */
+
+/* 1. Medium Screens / Tablets (<= 900px) */
+@media (max-width: 900px) {
+  .container {
+    max-width: 100%;
+    margin: 0 10px;
+  }
+
+  .advisor-quick-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* 2. Standard Mobile & Tablets (<= 768px) */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden !important;
+    width: 100%;
+  }
+
+  body {
+    padding: 16px 8px 40px;
+  }
+
+  .container {
+    padding: 22px 14px;
+    border-radius: 18px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .auth-card {
+    padding: 28px 18px;
+    margin: 20px auto;
+    max-width: 100%;
+  }
+
+  /* Header & Navigation */
+  .header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .user-meta-bar {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .month-selector-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .month-nav {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .month-quick-pills {
+    justify-content: center;
+    width: 100%;
+  }
+
+  /* Summary Cards */
+  .summary-box {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  /* Form & Inputs */
+  .form-container {
+    padding: 18px 14px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  .input-wrapper,
+  .input-wrapper input,
+  .input-wrapper select {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Smart Savings Advisor Fix - Eliminates Horizontal Cutoff */
+  .advisor-card {
+    padding: 18px 14px;
+  }
+
+  .advisor-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .advisor-actions {
+    width: 100%;
+  }
+
+  .btn-advisor-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .advisor-quick-metrics {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .quick-metric-item {
+    min-width: 0 !important;
+    padding: 12px 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .qm-value {
+    font-size: 1.15rem;
+    word-break: break-word;
+  }
+
+  .advisor-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .daily-cap-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .budget-bars {
+    gap: 14px;
+  }
+
+  /* Table Filters & Transactions Table */
+  .table-filters {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .filter-search-box {
+    width: 100%;
+  }
+
+  .filter-search-box input {
+    width: 100%;
+  }
+
+  .table-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+  }
+
+  .table-wrapper table {
+    min-width: 580px;
+  }
+}
+
+/* 3. Small Mobile Phones (<= 480px - iPhone SE, Android 360px) */
+@media (max-width: 480px) {
+  body {
+    padding: 10px 6px 30px;
+  }
+
+  .container {
+    padding: 16px 10px;
+    border-radius: 16px;
+  }
+
+  .auth-card {
+    padding: 20px 12px;
+  }
+
+  .brand-logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .brand-header h2 {
+    font-size: 1.4rem;
+  }
+
+  /* Advisor 2x2 Clean Compact Grid */
+  .advisor-quick-metrics {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .quick-metric-item {
+    padding: 10px 8px !important;
+  }
+
+  .qm-label {
+    font-size: 0.65rem !important;
+    gap: 4px;
+  }
+
+  .qm-value {
+    font-size: 1.02rem !important;
+  }
+
+  .qm-hint {
+    font-size: 0.68rem !important;
+  }
+
+  /* Floating Theme Toggle */
+  .top-nav-controls {
+    top: 10px;
+    right: 10px;
+  }
+
+  .btn-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 0.95rem;
+    border-radius: 10px;
+  }
+
+  /* Cards */
+  .card {
+    padding: 14px 12px;
+    gap: 12px;
+  }
+
+  .card-icon-wrapper {
+    width: 42px;
+    height: 42px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+  }
+
+  .card-content h3 {
+    font-size: 1.25rem;
+  }
+
+  /* Buttons */
+  .btn-primary, 
+  .btn-secondary {
+    padding: 12px 14px;
+    font-size: 0.92rem;
+  }
+
+  /* Form */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  select {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
 }
