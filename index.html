@@ -26,8 +26,8 @@
   <link rel="apple-touch-icon" href="logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
   
-  <!-- Custom Modern CSS (v2.3 Cache Busting) -->
-  <link rel="stylesheet" href="style.css?v=2.3">
+  <!-- Custom Modern CSS (v2.5 Cache Busting) -->
+  <link rel="stylesheet" href="style.css?v=2.5">
   
   <!-- Firebase SDKs (v10 Compat Mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -158,10 +158,30 @@
       </div>
       
       <div class="user-meta-bar">
-        <div class="user-badge">
-          <div class="user-avatar" id="userAvatar">U</div>
-          <span id="userEmailTag">user@example.com</span>
+        <div class="user-badge" id="userBadgeCard">
+          <!-- Clickable Profile Picture with Camera Overlay -->
+          <div class="user-avatar-wrap" onclick="triggerProfilePicUpload()" title="Click to Change Profile Picture">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <img id="userAvatarImg" class="user-avatar-img" src="" alt="Profile" style="display: none;">
+            <div class="avatar-camera-overlay">
+              <i class="fa-solid fa-camera"></i>
+            </div>
+            <input type="file" id="profilePicInput" accept="image/*" style="display: none;" onchange="handleProfilePicChange(event)">
+          </div>
+          
+          <div class="user-info-col">
+            <div class="user-email-wrap">
+              <span id="userEmailTag">user@example.com</span>
+            </div>
+            <!-- Verified / Unverified Account Badge -->
+            <div class="user-status-row">
+              <span id="userVerificationBadge" class="badge-verification unverified" onclick="handleBadgeClick()" title="Checking status...">
+                <i class="fa-solid fa-clock"></i> Unverified
+              </span>
+            </div>
+          </div>
         </div>
+
         <button onclick="handleLogout()" class="btn-logout" title="Sign Out">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
           <span>Logout</span>
@@ -444,10 +464,9 @@
         </div>
 
         <div class="form-group">
-          <label for="amount"><i class="fa-solid fa-money-bill-wave"></i> Amount (PKR)</label>
-          <div class="input-wrapper input-currency">
-            <span class="currency-symbol">Rs.</span>
-            <input type="number" id="amount" placeholder="0" min="1" step="any" required>
+          <label for="amount"><i class="fa-solid fa-money-bill-wave"></i> Amount (Rs.)</label>
+          <div class="input-wrapper">
+            <input type="number" id="amount" placeholder="Enter amount (e.g. 5000)" min="1" step="any" required>
           </div>
         </div>
 
@@ -577,13 +596,13 @@
 
   </div>
 
-  <script src="script.js?v=2.2"></script>
+  <script src="script.js?v=2.4"></script>
   
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=2.2')
+        navigator.serviceWorker.register('./sw.js?v=2.4')
           .then(reg => {
             reg.update(); // Force immediate update
             console.log('SmartFlow PWA ServiceWorker active:', reg.scope);

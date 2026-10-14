@@ -589,6 +589,7 @@ auth.onAuthStateChanged(user => {
   const authSection = document.getElementById('authSection');
   const appSection = document.getElementById('appSection');
   const emailVerifyNotice = document.getElementById('emailVerifyNotice');
+  const verificationBadge = document.getElementById('userVerificationBadge');
 
   if (user) {
     currentUser = user;
@@ -598,12 +599,23 @@ auth.onAuthStateChanged(user => {
     const emailDisplay = user.email || 'User';
     document.getElementById('userEmailTag').innerText = emailDisplay;
     
-    const avatar = document.getElementById('userAvatar');
-    if (avatar) {
-      avatar.innerText = emailDisplay.charAt(0).toUpperCase();
+    // 1. Update Profile Avatar / Picture
+    loadUserProfilePic(user.uid, emailDisplay);
+
+    // 2. Update Verified Badge Status
+    if (verificationBadge) {
+      if (user.emailVerified) {
+        verificationBadge.className = 'badge-verification verified';
+        verificationBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Verified';
+        verificationBadge.title = 'Officially Verified Account';
+      } else {
+        verificationBadge.className = 'badge-verification unverified';
+        verificationBadge.innerHTML = '<i class="fa-solid fa-clock"></i> Unverified';
+        verificationBadge.title = 'Click to send verification link';
+      }
     }
 
-    // Email verification status banner
+    // 3. Email verification status top alert banner
     if (emailVerifyNotice) {
       if (!user.emailVerified) {
         emailVerifyNotice.style.display = 'flex';
@@ -629,6 +641,146 @@ auth.onAuthStateChanged(user => {
     if (emailVerifyNotice) emailVerifyNotice.style.display = 'none';
   }
 });
+
+// ==========================================================================
+// User Profile Picture & Verification Badge System
+// ==========================================================================
+
+function loadUserProfilePic(uid, fallbackEmail = 'User') {
+  const avatarText = document.getElementById('userAvatar');
+  const avatarImg = document.getElementById('userAvatarImg');
+
+  // Check LocalStorage or user object for saved photo
+  const savedPhoto = localStorage.getItem('smartflow_avatar_' + uid);
+
+  if (savedPhoto) {
+    if (avatarImg) {
+      avatarImg.src = savedPhoto;
+      avatarImg.style.display = 'block';
+    }
+    if (avatarText) avatarText.style.display = 'none';
+  } else {
+    if (avatarImg) avatarImg.style.display = 'none';
+    if (avatarText) {
+      avatarText.style.display = 'flex';
+      avatarText.innerText = fallbackEmail.charAt(0).toUpperCase();
+    }
+
+    // Attempt to load from Firestore async
+    db.collection('users').doc(uid).get().then(doc => {
+      if (doc.exists && doc.data() && doc.data().photoURL) {
+        const url = doc.data().photoURL;
+        localStorage.setItem('smartflow_avatar_' + uid, url);
+        if (avatarImg) {
+          avatarImg.src = url;
+          avatarImg.style.display = 'block';
+        }
+        if (avatarText) avatarText.style.display = 'none';
+      }
+    }).catch(err => console.log('Avatar cloud fetch notice:', err));
+  }
+}
+
+function triggerProfilePicUpload() {
+  const input = document.getElementById('profilePicInput');
+  if (input) input.click();
+}
+
+function handleProfilePicChange(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast("Please select a valid image file (PNG, JPG, WebP)", "error");
+    return;
+  }
+
+  showToast("Uploading & processing profile picture...", "info");
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // Compress and resize image to 256x256 max using Canvas for optimal performance
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 256;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+      if (currentUser) {
+        // Save to local storage
+        localStorage.setItem('smartflow_avatar_' + currentUser.uid, compressedBase64);
+
+        // Update UI
+        const avatarImg = document.getElementById('userAvatarImg');
+        const avatarText = document.getElementById('userAvatar');
+        if (avatarImg) {
+          avatarImg.src = compressedBase64;
+          avatarImg.style.display = 'block';
+        }
+        if (avatarText) avatarText.style.display = 'none';
+
+        // Save to Firestore
+        db.collection('users').doc(currentUser.uid).set({
+          photoURL: compressedBase64,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(() => {
+          showToast("📸 Profile picture updated successfully!", "success");
+        }).catch(err => {
+          console.warn("Cloud avatar sync notice:", err);
+          showToast("📸 Profile picture saved locally!", "success");
+        });
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleBadgeClick() {
+  if (!currentUser) return;
+
+  if (currentUser.emailVerified) {
+    showToast("✅ This account is officially verified & secure!", "success");
+  } else {
+    // If unverified, reload user to see if they just verified their email
+    currentUser.reload().then(() => {
+      if (currentUser.emailVerified) {
+        const verificationBadge = document.getElementById('userVerificationBadge');
+        const emailVerifyNotice = document.getElementById('emailVerifyNotice');
+        if (verificationBadge) {
+          verificationBadge.className = 'badge-verification verified';
+          verificationBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Verified';
+        }
+        if (emailVerifyNotice) emailVerifyNotice.style.display = 'none';
+        showToast("🎉 Awesome! Your email is now verified!", "success");
+      } else {
+        resendVerificationEmail();
+      }
+    }).catch(() => {
+      resendVerificationEmail();
+    });
+  }
+}
 
 // ==========================================================================
 // Auth Handlers (Signup, Login, Logout, Verification, Reset)
