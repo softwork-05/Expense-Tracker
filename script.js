@@ -15,6 +15,9 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Auto-logout tracker across window/app sessions
+let isInitialCheckDone = false;
+
 let currentUser = null;
 let currentTransactions = []; // Cached transactions for client-side search & filtering
 let activeRecurringRules = []; // Cached recurring rules
@@ -107,6 +110,7 @@ function switchAuthTab(mode) {
     if (passwordValidationBox) passwordValidationBox.style.display = 'none';
     if (forgotPwdBtn) forgotPwdBtn.style.display = 'inline';
     authSwitchPrompt.innerHTML = `Don't have an account? <a href="javascript:void(0)" onclick="switchAuthTab('signup')">Sign up</a>`;
+    initBiometricAuth();
   } else {
     tabSignup.classList.add('active');
     tabLogin.classList.remove('active');
@@ -116,6 +120,8 @@ function switchAuthTab(mode) {
     if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'flex';
     if (passwordValidationBox) passwordValidationBox.style.display = 'block';
     if (forgotPwdBtn) forgotPwdBtn.style.display = 'none';
+    const bioContainer = document.getElementById('biometricLoginContainer');
+    if (bioContainer) bioContainer.style.display = 'none';
     authSwitchPrompt.innerHTML = `Already have an account? <a href="javascript:void(0)" onclick="switchAuthTab('login')">Log in</a>`;
     validatePasswordLive();
   }
@@ -683,7 +689,18 @@ auth.onAuthStateChanged(user => {
   const emailVerifyNotice = document.getElementById('emailVerifyNotice');
   const verificationBadge = document.getElementById('userVerificationBadge');
 
+  // On app/window launch: check if window was previously closed
+  if (!isInitialCheckDone) {
+    isInitialCheckDone = true;
+    if (user && !sessionStorage.getItem('smartflow_session_active')) {
+      // Window was closed and reopened: force logout once
+      auth.signOut().catch(() => {});
+      return;
+    }
+  }
+
   if (user) {
+    sessionStorage.setItem('smartflow_session_active', 'true');
     currentUser = user;
     authSection.style.display = 'none';
     appSection.style.display = 'block';
@@ -731,6 +748,7 @@ auth.onAuthStateChanged(user => {
     authSection.style.display = 'block';
     appSection.style.display = 'none';
     if (emailVerifyNotice) emailVerifyNotice.style.display = 'none';
+    initBiometricAuth();
   }
 });
 
@@ -912,6 +930,7 @@ function handleSignup() {
   }
 
   showToast("Creating your account...", "info");
+  sessionStorage.setItem('smartflow_session_active', 'true');
 
   auth.createUserWithEmailAndPassword(email, password)
     .then(userCredential => {
@@ -927,6 +946,7 @@ function handleSignup() {
       showToast("Account created successfully! Welcome to SmartFlow!", "success");
     })
     .catch(error => {
+      sessionStorage.removeItem('smartflow_session_active');
       let msg = error.message;
       if (error.code === 'auth/email-already-in-use') {
         msg = "This email is already registered. Please log in instead.";
@@ -939,7 +959,7 @@ function handleSignup() {
     });
 }
 
-function handleLogin() {
+function handleLogin(isBiometric = false) {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
 
@@ -955,16 +975,29 @@ function handleLogin() {
     return;
   }
 
-  showToast("Signing in...", "info");
+  showToast(isBiometric ? "Authenticating fingerprint..." : "Signing in...", "info");
+  sessionStorage.setItem('smartflow_session_active', 'true');
 
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
+      // Save credentials for Android Biometric fingerprint login
+      if (window.AndroidBiometric && typeof window.AndroidBiometric.isBiometricAvailable === 'function') {
+        try {
+          if (window.AndroidBiometric.isBiometricAvailable()) {
+            window.AndroidBiometric.saveCredentials(email, password);
+          }
+        } catch (e) {
+          console.log("Biometric credential save notice:", e);
+        }
+      }
+
       showToast("Logged in successfully! Welcome back!", "success");
       if (!userCredential.user.emailVerified) {
         showToast("⚠️ Note: Your email is not verified yet. You can resend verification from the top banner.", "info");
       }
     })
     .catch(error => {
+      sessionStorage.removeItem('smartflow_session_active');
       let msg = error.message;
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         msg = "Invalid email or password. Please check your credentials.";
@@ -1013,10 +1046,77 @@ function resendVerificationEmail() {
 }
 
 function handleLogout() {
+  sessionStorage.removeItem('smartflow_session_active');
   auth.signOut()
     .then(() => {
       showToast("You have been signed out.", "info");
+      initBiometricAuth();
     });
+}
+
+// ==========================================================================
+// Biometric & Fingerprint Authentication Integration (Android APK Bridge)
+// ==========================================================================
+
+function initBiometricAuth() {
+  const container = document.getElementById('biometricLoginContainer');
+  if (!container) return;
+
+  if (window.AndroidBiometric && typeof window.AndroidBiometric.isBiometricAvailable === 'function') {
+    try {
+      const isAvailable = window.AndroidBiometric.isBiometricAvailable();
+      const hasCreds = window.AndroidBiometric.hasSavedCredentials();
+      if (isAvailable && hasCreds) {
+        container.style.display = 'block';
+        const savedEmail = window.AndroidBiometric.getSavedEmail();
+        const emailInput = document.getElementById('authEmail');
+        if (savedEmail && emailInput && !emailInput.value) {
+          emailInput.value = savedEmail;
+        }
+      } else {
+        container.style.display = 'none';
+      }
+    } catch (e) {
+      console.log("Biometric check notice:", e);
+      container.style.display = 'none';
+    }
+  } else {
+    container.style.display = 'none';
+  }
+}
+
+function triggerBiometricLogin() {
+  if (window.AndroidBiometric && typeof window.AndroidBiometric.promptBiometricLogin === 'function') {
+    showToast("Touch the fingerprint sensor to sign in...", "info");
+    window.AndroidBiometric.promptBiometricLogin();
+  } else {
+    showToast("Fingerprint authentication is available inside the Android APK.", "info");
+  }
+}
+
+// Native callback on fingerprint match
+window.onBiometricSuccess = function(email, password) {
+  const emailInput = document.getElementById('authEmail');
+  const passInput = document.getElementById('authPassword');
+  if (emailInput) emailInput.value = email;
+  if (passInput) passInput.value = password;
+
+  showToast("Fingerprint verified! Signing in...", "success");
+  handleLogin(true);
+};
+
+// Native callback on fingerprint error or failure
+window.onBiometricError = function(errMsg) {
+  if (errMsg) {
+    showToast(errMsg, "error");
+  }
+};
+
+// Check biometric availability on initial script load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBiometricAuth);
+} else {
+  setTimeout(initBiometricAuth, 300);
 }
 
 // ==========================================================================
@@ -2358,3 +2458,68 @@ function exportTransactionsToExcel() {
 
   showToast(`📊 Colorful Executive Excel Report downloaded: ${safeFilename}`, 'success');
 }
+
+// ==========================================================================
+// iOS Safari, Mobile & Desktop Window Close Auto-Logout Engine
+// ==========================================================================
+
+function performSessionLogout() {
+  try {
+    sessionStorage.removeItem('smartflow_session_active');
+    auth.signOut();
+  } catch (e) {
+    console.log("Logout notice:", e);
+  }
+}
+
+// 1. Standard Desktop browser tab / window close
+window.addEventListener('beforeunload', () => {
+  performSessionLogout();
+});
+
+// 2. iOS Safari & WebKit Tab Close / Navigation (pagehide is the official Apple standard)
+window.addEventListener('pagehide', (event) => {
+  performSessionLogout();
+});
+
+// 3. User Interaction Tracker (to detect inactivity)
+let lastUserActivityTime = Date.now();
+const INACTIVITY_LIMIT_MS = 5 * 60 * 1000; // 5 minutes idle time
+
+function refreshUserActivity() {
+  lastUserActivityTime = Date.now();
+}
+
+['touchstart', 'touchend', 'click', 'keydown', 'scroll'].forEach(eventName => {
+  window.addEventListener(eventName, refreshUserActivity, { passive: true });
+});
+
+// 4. Background & Lock Detection (iPhone screen lock or switching away)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // Record when the app was minimized / backgrounded / locked
+    sessionStorage.setItem('smartflow_app_hidden_at', Date.now().toString());
+  } else if (document.visibilityState === 'visible') {
+    const hiddenAt = sessionStorage.getItem('smartflow_app_hidden_at');
+    if (hiddenAt && currentUser) {
+      const elapsedSeconds = (Date.now() - parseInt(hiddenAt, 10)) / 1000;
+      // If user minimized or locked iPhone for more than 45 seconds, auto-logout for safety
+      if (elapsedSeconds > 45) {
+        showToast("🔒 Security Timeout: You have been logged out. Please sign in again.", "info");
+        handleLogout();
+      }
+    }
+    sessionStorage.removeItem('smartflow_app_hidden_at');
+  }
+});
+
+// 5. Inactivity Checker (every 15 seconds)
+setInterval(() => {
+  if (currentUser) {
+    const idleSeconds = (Date.now() - lastUserActivityTime) / 1000;
+    if (idleSeconds > 300) { // 5 minutes of no screen touches
+      showToast("🔒 Auto-logout due to inactivity for security.", "info");
+      handleLogout();
+    }
+  }
+}, 15000);
