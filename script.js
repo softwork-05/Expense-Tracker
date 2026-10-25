@@ -15,9 +15,18 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Auto-logout tracker across window/app sessions
-let isInitialCheckDone = false;
+// Safe Session Helpers (Guaranteed never to crash on file:// or WebView)
+function getSessionFlag(k) {
+  try { return sessionStorage.getItem(k); } catch (e) { return null; }
+}
+function setSessionFlag(k, v) {
+  try { sessionStorage.setItem(k, v); } catch (e) {}
+}
+function removeSessionFlag(k) {
+  try { sessionStorage.removeItem(k); } catch (e) {}
+}
 
+let isInitialCheckDone = false;
 let currentUser = null;
 let currentTransactions = []; // Cached transactions for client-side search & filtering
 let activeRecurringRules = []; // Cached recurring rules
@@ -96,6 +105,8 @@ function switchAuthTab(mode) {
   const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
   const passwordValidationBox = document.getElementById('passwordValidationBox');
   const forgotPwdBtn = document.getElementById('forgotPwdBtn');
+  const googleBtnLabel = document.getElementById('googleBtnLabel');
+  const quickPinContainer = document.getElementById('quickPinContainer');
 
   // Clear previous hints
   clearAuthHints();
@@ -109,8 +120,11 @@ function switchAuthTab(mode) {
     if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
     if (passwordValidationBox) passwordValidationBox.style.display = 'none';
     if (forgotPwdBtn) forgotPwdBtn.style.display = 'inline';
+    if (googleBtnLabel) googleBtnLabel.innerText = 'Continue with Google';
+    if (quickPinContainer) quickPinContainer.style.display = 'flex';
     authSwitchPrompt.innerHTML = `Don't have an account? <a href="javascript:void(0)" onclick="switchAuthTab('signup')">Sign up</a>`;
     initBiometricAuth();
+    initQuickPinUI();
   } else {
     tabSignup.classList.add('active');
     tabLogin.classList.remove('active');
@@ -120,6 +134,8 @@ function switchAuthTab(mode) {
     if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'flex';
     if (passwordValidationBox) passwordValidationBox.style.display = 'block';
     if (forgotPwdBtn) forgotPwdBtn.style.display = 'none';
+    if (googleBtnLabel) googleBtnLabel.innerText = 'Sign up with Google';
+    if (quickPinContainer) quickPinContainer.style.display = 'none';
     const bioContainer = document.getElementById('biometricLoginContainer');
     if (bioContainer) bioContainer.style.display = 'none';
     authSwitchPrompt.innerHTML = `Already have an account? <a href="javascript:void(0)" onclick="switchAuthTab('login')">Log in</a>`;
@@ -270,6 +286,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize interactive cursor & button sheen effects
   initCustomCursor();
+
+  // Initialize Quick PIN UI for iPhone Safari & Web
+  initQuickPinUI();
 });
 
 // ==========================================================================
@@ -692,7 +711,7 @@ auth.onAuthStateChanged(user => {
   // On app/window launch: check if window was previously closed
   if (!isInitialCheckDone) {
     isInitialCheckDone = true;
-    if (user && !sessionStorage.getItem('smartflow_session_active')) {
+    if (user && !getSessionFlag('smartflow_session_active')) {
       // Window was closed and reopened: force logout once
       auth.signOut().catch(() => {});
       return;
@@ -700,13 +719,31 @@ auth.onAuthStateChanged(user => {
   }
 
   if (user) {
-    sessionStorage.setItem('smartflow_session_active', 'true');
+    // STRICT EMAIL VERIFICATION: Block unverified users from entering app
+    if (!user.emailVerified) {
+      currentUser = null;
+      removeSessionFlag('smartflow_session_active');
+      authSection.style.display = 'block';
+      appSection.style.display = 'none';
+      showEmailVerifyModal(user.email);
+      auth.signOut().catch(() => {});
+      return;
+    }
+
+    setSessionFlag('smartflow_session_active', 'true');
     currentUser = user;
     authSection.style.display = 'none';
     appSection.style.display = 'block';
 
     const emailDisplay = user.email || 'User';
     document.getElementById('userEmailTag').innerText = emailDisplay;
+
+    // Save user profile in Firestore so Owner can see all user names/emails in Firebase Console
+    db.collection('users').doc(user.uid).set({
+      email: user.email || 'Anonymous',
+      displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).catch(err => console.log("User sync notice:", err));
     
     // 1. Update Profile Avatar / Picture
     loadUserProfilePic(user.uid, emailDisplay);
@@ -738,6 +775,13 @@ auth.onAuthStateChanged(user => {
     // Check and automatically deduct monthly fixed expenses for new month
     checkAndApplyRecurringExpenses(user.uid);
 
+    // Admin Access Check (Exclusively for hyjano040@gmail.com)
+    const isAdminUser = user.email && ADMIN_EMAILS.includes(user.email.toLowerCase().trim());
+    const adminBtn = document.getElementById('adminPanelBtn');
+    if (adminBtn) {
+      adminBtn.style.display = isAdminUser ? 'inline-flex' : 'none';
+    }
+
     // Load user transactions and recurring rules
     loadUserTransactions();
     listenToRecurringRules(user.uid);
@@ -748,6 +792,8 @@ auth.onAuthStateChanged(user => {
     authSection.style.display = 'block';
     appSection.style.display = 'none';
     if (emailVerifyNotice) emailVerifyNotice.style.display = 'none';
+    const adminBtn = document.getElementById('adminPanelBtn');
+    if (adminBtn) adminBtn.style.display = 'none';
     initBiometricAuth();
   }
 });
@@ -930,20 +976,35 @@ function handleSignup() {
   }
 
   showToast("Creating your account...", "info");
-  sessionStorage.setItem('smartflow_session_active', 'true');
+  removeSessionFlag('smartflow_session_active');
 
   auth.createUserWithEmailAndPassword(email, password)
-    .then(userCredential => {
-      // Send Email Verification
-      userCredential.user.sendEmailVerification()
-        .then(() => {
-          showToast("📧 Verification email sent to " + email + "! Please check your inbox.", "success");
-        })
-        .catch(err => {
-          console.warn("Verification email notice:", err);
-        });
+    .then(async userCredential => {
+      const user = userCredential.user;
 
-      showToast("Account created successfully! Welcome to SmartFlow!", "success");
+      // 1. Immediately store user profile document in Firestore
+      try {
+        await db.collection('users').doc(user.uid).set({
+          email: email,
+          displayName: email.split('@')[0],
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        console.log("User doc create notice:", err);
+      }
+
+      // 2. Send Email Verification
+      try {
+        await user.sendEmailVerification();
+        showToast("📧 Verification email sent to " + email + "! Please verify before login.", "success");
+      } catch (err) {
+        console.warn("Verification email notice:", err);
+      }
+
+      // 3. STRICT VERIFICATION: Sign out and display Verification Required modal!
+      await auth.signOut();
+      showEmailVerifyModal(email);
     })
     .catch(error => {
       sessionStorage.removeItem('smartflow_session_active');
@@ -976,10 +1037,21 @@ function handleLogin(isBiometric = false) {
   }
 
   showToast(isBiometric ? "Authenticating fingerprint..." : "Signing in...", "info");
-  sessionStorage.setItem('smartflow_session_active', 'true');
+  setSessionFlag('smartflow_session_active', 'true');
 
   auth.signInWithEmailAndPassword(email, password)
     .then(userCredential => {
+      const user = userCredential.user;
+
+      // STRICT VERIFICATION CHECK:
+      if (!user.emailVerified) {
+        removeSessionFlag('smartflow_session_active');
+        showToast("⚠️ Pehle apna email verify karein! Check your inbox.", "error");
+        showEmailVerifyModal(email);
+        auth.signOut();
+        return;
+      }
+
       // Save credentials for Android Biometric fingerprint login
       if (window.AndroidBiometric && typeof window.AndroidBiometric.isBiometricAvailable === 'function') {
         try {
@@ -992,9 +1064,6 @@ function handleLogin(isBiometric = false) {
       }
 
       showToast("Logged in successfully! Welcome back!", "success");
-      if (!userCredential.user.emailVerified) {
-        showToast("⚠️ Note: Your email is not verified yet. You can resend verification from the top banner.", "info");
-      }
     })
     .catch(error => {
       sessionStorage.removeItem('smartflow_session_active');
@@ -1114,9 +1183,354 @@ window.onBiometricError = function(errMsg) {
 
 // Check biometric availability on initial script load
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initBiometricAuth);
+  document.addEventListener('DOMContentLoaded', () => {
+    initBiometricAuth();
+    initQuickPinUI();
+  });
 } else {
-  setTimeout(initBiometricAuth, 300);
+  setTimeout(() => {
+    initBiometricAuth();
+    initQuickPinUI();
+  }, 300);
+}
+
+// ==========================================================================
+// GOOGLE DIRECT SIGN-IN / SIGN-UP ENGINE
+// ==========================================================================
+async function handleGoogleAuth() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.addScope('email');
+  provider.addScope('profile');
+  provider.setCustomParameters({ prompt: 'select_account' });
+
+  showToast("Connecting to Google...", "info");
+  setSessionFlag('smartflow_session_active', 'true');
+
+  try {
+    const result = await auth.signInWithPopup(provider);
+    const user = result.user;
+
+    // Save/update user profile in Firestore
+    await db.collection('users').doc(user.uid).set({
+      email: user.email,
+      displayName: user.displayName || user.email.split('@')[0],
+      photoURL: user.photoURL || '',
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    showToast(`Welcome, ${user.displayName || user.email}!`, "success");
+  } catch (error) {
+    console.error("Google Auth error:", error);
+    if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+      auth.signInWithRedirect(provider).catch(e => {
+        showToast("Google Login Error: " + e.message, "error");
+      });
+      return;
+    }
+    if (error.code === 'auth/popup-closed-by-user') {
+      showToast("Google login was cancelled.", "info");
+      return;
+    }
+    showToast("Google Sign-In: " + error.message, "error");
+  }
+}
+
+// Catch redirect result on iOS Safari or mobile web
+auth.getRedirectResult().then(async result => {
+  if (result && result.user) {
+    const user = result.user;
+    await db.collection('users').doc(user.uid).set({
+      email: user.email,
+      displayName: user.displayName || user.email.split('@')[0],
+      photoURL: user.photoURL || '',
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    setSessionFlag('smartflow_session_active', 'true');
+    showToast(`Welcome back, ${user.displayName || user.email}!`, "success");
+  }
+}).catch(err => {
+  if (err) console.log("Google redirect notice:", err);
+});
+
+// ==========================================================================
+// STRICT EMAIL VERIFICATION ENGINE
+// ==========================================================================
+let pendingVerificationEmail = '';
+
+function showEmailVerifyModal(email) {
+  pendingVerificationEmail = email || '';
+  const modal = document.getElementById('emailVerifyRequiredModal');
+  const targetSpan = document.getElementById('verifyTargetEmail');
+  if (targetSpan) targetSpan.innerText = pendingVerificationEmail || 'Your Email';
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeEmailVerifyModal() {
+  const modal = document.getElementById('emailVerifyRequiredModal');
+  if (modal) modal.style.display = 'none';
+  switchAuthTab('login');
+}
+
+async function checkIfVerifiedAndProceed() {
+  showToast("Checking verification status with Firebase...", "info");
+  const emailInput = document.getElementById('authEmail');
+  const passInput = document.getElementById('authPassword');
+  
+  if (auth.currentUser) {
+    try {
+      await auth.currentUser.reload();
+      if (auth.currentUser.emailVerified) {
+        showToast("✅ Email officially verified! Welcome!", "success");
+        closeEmailVerifyModal();
+        setSessionFlag('smartflow_session_active', 'true');
+        return;
+      }
+    } catch (e) {}
+  }
+
+  // Close modal and prompt to login
+  closeEmailVerifyModal();
+  switchAuthTab('login');
+  if (pendingVerificationEmail && emailInput) {
+    emailInput.value = pendingVerificationEmail;
+  }
+  showToast("Email par verification link click karne ke baad yahan password enter karke Log In karein.", "info");
+  if (passInput) passInput.focus();
+}
+
+async function resendVerificationForEmail() {
+  showToast("Sending fresh verification link...", "info");
+  try {
+    if (auth.currentUser) {
+      await auth.currentUser.sendEmailVerification();
+      showToast("📬 Fresh verification email sent to " + (auth.currentUser.email || pendingVerificationEmail) + "! Check inbox & spam.", "success");
+      return;
+    }
+
+    const emailInput = document.getElementById('authEmail')?.value.trim() || pendingVerificationEmail;
+    const passInput = document.getElementById('authPassword')?.value;
+    if (emailInput && passInput) {
+      const cred = await auth.signInWithEmailAndPassword(emailInput, passInput);
+      await cred.user.sendEmailVerification();
+      await auth.signOut();
+      showToast("📬 Fresh verification link sent to " + emailInput + "! Check your inbox.", "success");
+    } else {
+      showToast("Please enter your password on the login screen to resend verification.", "info");
+      closeEmailVerifyModal();
+      switchAuthTab('login');
+    }
+  } catch (err) {
+    showToast("Resend Error: " + err.message, "error");
+  }
+}
+
+// ==========================================================================
+// IPHONE SAFARI / WEB 4-DIGIT QUICK PIN AUTO-FILL & LOGIN ENGINE
+// ==========================================================================
+let currentPinBuffer = '';
+
+function getStoredPinData() {
+  try {
+    const raw = localStorage.getItem('smartflow_quick_pin');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+function initQuickPinUI() {
+  const pinData = getStoredPinData();
+  const pinContainer = document.getElementById('quickPinContainer');
+  const inlineLink = document.getElementById('pinQuickFillLink');
+  const btnTitle = document.getElementById('quickPinBtnTitle');
+  const btnSub = document.getElementById('quickPinBtnSub');
+  const btnRemove = document.getElementById('btnRemovePin');
+
+  if (pinData && pinData.pin && pinData.email) {
+    if (pinContainer) pinContainer.style.display = 'flex';
+    if (inlineLink) inlineLink.style.display = 'inline-flex';
+    if (btnTitle) btnTitle.innerText = "Quick PIN Auto-Fill & Login";
+    if (btnSub) btnSub.innerText = "Auto-fills " + pinData.email;
+    if (btnRemove) btnRemove.style.display = 'inline-flex';
+  } else {
+    if (pinContainer) pinContainer.style.display = 'flex';
+    if (inlineLink) inlineLink.style.display = 'none';
+    if (btnTitle) btnTitle.innerText = "Setup 4-Digit Quick PIN";
+    if (btnSub) btnSub.innerText = "For iPhone Safari & Fast Browser Access";
+    if (btnRemove) btnRemove.style.display = 'none';
+  }
+}
+
+function handleQuickPinClick() {
+  const pinData = getStoredPinData();
+  if (pinData && pinData.pin) {
+    openPinKeypadModal();
+  } else {
+    openPinSetupModal();
+  }
+}
+
+function openPinKeypadModal() {
+  const pinData = getStoredPinData();
+  if (!pinData || !pinData.pin) {
+    openPinSetupModal();
+    return;
+  }
+
+  currentPinBuffer = '';
+  updatePinDotsUI();
+  const modal = document.getElementById('pinKeypadModal');
+  const subtitle = document.getElementById('pinModalSubtitle');
+  if (subtitle) subtitle.innerText = `Auto-fills ${pinData.email} & logs you in`;
+  if (modal) modal.style.display = 'flex';
+}
+
+function closePinKeypadModal() {
+  const modal = document.getElementById('pinKeypadModal');
+  if (modal) modal.style.display = 'none';
+  currentPinBuffer = '';
+}
+
+function pressPinKey(digit) {
+  if (currentPinBuffer.length >= 4) return;
+  currentPinBuffer += String(digit);
+  updatePinDotsUI();
+
+  if (navigator.vibrate) {
+    try { navigator.vibrate(25); } catch(e) {}
+  }
+
+  if (currentPinBuffer.length === 4) {
+    setTimeout(verifyEnteredPin, 150);
+  }
+}
+
+function pressPinBackspace() {
+  if (currentPinBuffer.length > 0) {
+    currentPinBuffer = currentPinBuffer.slice(0, -1);
+    updatePinDotsUI();
+  }
+}
+
+function updatePinDotsUI(isError = false) {
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById('pdot' + i);
+    if (dot) {
+      if (isError) {
+        dot.className = 'pin-dot error';
+      } else if (i <= currentPinBuffer.length) {
+        dot.className = 'pin-dot filled';
+      } else {
+        dot.className = 'pin-dot';
+      }
+    }
+  }
+}
+
+function verifyEnteredPin() {
+  const pinData = getStoredPinData();
+  if (!pinData || !pinData.pin) return;
+
+  if (currentPinBuffer === pinData.pin) {
+    // PIN IS CORRECT!
+    if (navigator.vibrate) {
+      try { navigator.vibrate([40, 40]); } catch(e) {}
+    }
+    closePinKeypadModal();
+
+    const emailInput = document.getElementById('authEmail');
+    const passInput = document.getElementById('authPassword');
+
+    if (emailInput) emailInput.value = pinData.email;
+    if (passInput) passInput.value = pinData.pass || '';
+
+    showToast("⚡ PIN Verified! Auto-filling & logging in...", "success");
+    handleLogin();
+  } else {
+    // PIN IS WRONG!
+    if (navigator.vibrate) {
+      try { navigator.vibrate([60, 60, 60]); } catch(e) {}
+    }
+    updatePinDotsUI(true);
+    showToast("Incorrect PIN. Please try again.", "error");
+
+    setTimeout(() => {
+      currentPinBuffer = '';
+      updatePinDotsUI(false);
+    }, 500);
+  }
+}
+
+function openPinSetupModal() {
+  const modal = document.getElementById('pinSetupModal');
+  const emailInput = document.getElementById('setupPinEmail');
+  const passInput = document.getElementById('setupPinPass');
+  const codeInput = document.getElementById('setupPinCode');
+
+  const activeEmail = (currentUser && currentUser.email) || document.getElementById('authEmail')?.value.trim() || '';
+  const activePass = document.getElementById('authPassword')?.value || '';
+  const pinData = getStoredPinData();
+
+  if (emailInput) emailInput.value = activeEmail || (pinData ? pinData.email : '');
+  if (passInput) passInput.value = activePass || (pinData ? pinData.pass : '');
+  if (codeInput) codeInput.value = pinData ? pinData.pin : '';
+
+  if (modal) modal.style.display = 'flex';
+}
+
+function closePinSetupModal() {
+  const modal = document.getElementById('pinSetupModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveQuickPin() {
+  const email = document.getElementById('setupPinEmail')?.value.trim();
+  const pass = document.getElementById('setupPinPass')?.value;
+  const pin = document.getElementById('setupPinCode')?.value.trim();
+
+  if (!email || !isValidEmail(email)) {
+    showToast("Please enter a valid email address.", "error");
+    return;
+  }
+
+  if (!pass || pass.length < 6) {
+    showToast("Please enter your account password so PIN can auto-fill it.", "error");
+    return;
+  }
+
+  if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+    showToast("Please choose exactly a 4-digit numeric PIN (e.g. 1234).", "error");
+    return;
+  }
+
+  const payload = {
+    email: email,
+    pass: pass,
+    pin: pin,
+    enabled: true,
+    updatedAt: Date.now()
+  };
+
+  try {
+    localStorage.setItem('smartflow_quick_pin', JSON.stringify(payload));
+    showToast(`✅ Quick PIN (${pin}) saved! Ab aap iPhone Safari par 1-tap PIN se login kar sakte hain.`, "success");
+    closePinSetupModal();
+    initQuickPinUI();
+  } catch (e) {
+    showToast("Storage error: " + e.message, "error");
+  }
+}
+
+function removeQuickPin() {
+  if (confirm("Are you sure you want to remove Quick PIN login from this device?")) {
+    try {
+      localStorage.removeItem('smartflow_quick_pin');
+      showToast("Quick PIN removed from this device.", "info");
+      closePinSetupModal();
+      initQuickPinUI();
+    } catch (e) {}
+  }
 }
 
 // ==========================================================================
@@ -1296,7 +1710,7 @@ async function addTransaction() {
       recurringRuleId = ruleRef.id;
     }
 
-    await db.collection('users').doc(currentUser.uid).collection('transactions').add({
+    const txPayload = {
       title: title,
       amount: amount,
       type: type,
@@ -1306,8 +1720,20 @@ async function addTransaction() {
       monthKey: monthKey,
       recurringRuleId: recurringRuleId,
       isAutoMonthly: type === 'PERMANENT',
+      userId: currentUser.uid,
+      userEmail: currentUser.email || 'Anonymous',
+      userName: currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'User'),
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+
+    const docRef = await db.collection('users').doc(currentUser.uid).collection('transactions').add(txPayload);
+
+    // Also mirror to global 'all_transactions' collection so you (the owner) can easily see all entries from all users in one place
+    try {
+      await db.collection('all_transactions').doc(docRef.id).set(txPayload);
+    } catch (e) {
+      console.log("Global ledger mirror notice:", e);
+    }
 
     document.getElementById('title').value = '';
     document.getElementById('amount').value = '';
@@ -1511,6 +1937,7 @@ function deleteTransaction(docId) {
   if (confirm("Are you sure you want to delete this transaction record?")) {
     db.collection('users').doc(currentUser.uid).collection('transactions').doc(docId).delete()
       .then(() => {
+        db.collection('all_transactions').doc(docId).delete().catch(() => {});
         showToast("Transaction deleted", "info");
       })
       .catch(err => {
@@ -2460,31 +2887,11 @@ function exportTransactionsToExcel() {
 }
 
 // ==========================================================================
-// iOS Safari, Mobile & Desktop Window Close Auto-Logout Engine
+// Inactivity & Background Security Timeout Engine
 // ==========================================================================
 
-function performSessionLogout() {
-  try {
-    sessionStorage.removeItem('smartflow_session_active');
-    auth.signOut();
-  } catch (e) {
-    console.log("Logout notice:", e);
-  }
-}
-
-// 1. Standard Desktop browser tab / window close
-window.addEventListener('beforeunload', () => {
-  performSessionLogout();
-});
-
-// 2. iOS Safari & WebKit Tab Close / Navigation (pagehide is the official Apple standard)
-window.addEventListener('pagehide', (event) => {
-  performSessionLogout();
-});
-
-// 3. User Interaction Tracker (to detect inactivity)
 let lastUserActivityTime = Date.now();
-const INACTIVITY_LIMIT_MS = 5 * 60 * 1000; // 5 minutes idle time
+const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutes idle time
 
 function refreshUserActivity() {
   lastUserActivityTime = Date.now();
@@ -2494,32 +2901,450 @@ function refreshUserActivity() {
   window.addEventListener(eventName, refreshUserActivity, { passive: true });
 });
 
-// 4. Background & Lock Detection (iPhone screen lock or switching away)
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') {
-    // Record when the app was minimized / backgrounded / locked
-    sessionStorage.setItem('smartflow_app_hidden_at', Date.now().toString());
-  } else if (document.visibilityState === 'visible') {
-    const hiddenAt = sessionStorage.getItem('smartflow_app_hidden_at');
-    if (hiddenAt && currentUser) {
-      const elapsedSeconds = (Date.now() - parseInt(hiddenAt, 10)) / 1000;
-      // If user minimized or locked iPhone for more than 45 seconds, auto-logout for safety
-      if (elapsedSeconds > 45) {
-        showToast("🔒 Security Timeout: You have been logged out. Please sign in again.", "info");
-        handleLogout();
-      }
-    }
-    sessionStorage.removeItem('smartflow_app_hidden_at');
-  }
-});
-
-// 5. Inactivity Checker (every 15 seconds)
+// Inactivity Checker
 setInterval(() => {
   if (currentUser) {
     const idleSeconds = (Date.now() - lastUserActivityTime) / 1000;
-    if (idleSeconds > 300) { // 5 minutes of no screen touches
+    if (idleSeconds > 900) { // 15 minutes
       showToast("🔒 Auto-logout due to inactivity for security.", "info");
       handleLogout();
     }
   }
-}, 15000);
+}, 30000);
+
+// ==========================================================================
+// MASTER ADMIN DASHBOARD ENGINE (Exclusively for hyjano040@gmail.com)
+// ==========================================================================
+
+const ADMIN_EMAILS = ['hyjano040@gmail.com'];
+let allSystemTransactions = []; // Cached master records
+let allSystemUsers = [];        // Cached user directory
+let currentAdminTab = 'ledger'; // 'ledger' or 'users'
+
+function openAdminModal() {
+  const modal = document.getElementById('adminModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  switchAdminTab('ledger');
+  loadAdminAllTransactions();
+}
+
+function closeAdminModal() {
+  const modal = document.getElementById('adminModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function switchAdminTab(tabName) {
+  currentAdminTab = tabName;
+  const ledgerView = document.getElementById('adminLedgerView');
+  const usersView = document.getElementById('adminUsersView');
+  const ledgerBtn = document.getElementById('adminTabLedgerBtn');
+  const usersBtn = document.getElementById('adminTabUsersBtn');
+
+  if (tabName === 'ledger') {
+    if (ledgerView) ledgerView.style.display = 'flex';
+    if (usersView) usersView.style.display = 'none';
+    if (ledgerBtn) ledgerBtn.classList.add('active');
+    if (usersBtn) usersBtn.classList.remove('active');
+  } else {
+    if (ledgerView) ledgerView.style.display = 'none';
+    if (usersView) usersView.style.display = 'flex';
+    if (ledgerBtn) ledgerBtn.classList.remove('active');
+    if (usersBtn) usersBtn.classList.add('active');
+    renderAdminUsersTable(allSystemUsers);
+  }
+}
+
+async function loadAdminAllTransactions(forceRefresh = false) {
+  if (allSystemTransactions.length > 0 && !forceRefresh) {
+    renderAdminTable(allSystemTransactions);
+    renderAdminUsersTable(allSystemUsers);
+    return;
+  }
+
+  const loading = document.getElementById('adminLoadingState');
+  const txTbody = document.getElementById('adminTransactionsTableBody');
+  const userTbody = document.getElementById('adminUsersTableBody');
+
+  if (loading) loading.style.display = 'flex';
+  if (txTbody) txTbody.innerHTML = '';
+  if (userTbody) userTbody.innerHTML = '';
+
+  try {
+    // 1. Fetch all registered user accounts from Firestore 'users' collection
+    const usersSnap = await db.collection('users').get();
+    const userMap = {};
+    const allUniqueUserIds = new Set();
+    const userSpendMap = {};
+    const userTxCountMap = {};
+
+    usersSnap.forEach(doc => {
+      allUniqueUserIds.add(doc.id);
+      const uData = doc.data() || {};
+      userMap[doc.id] = {
+        uid: doc.id,
+        email: uData.email || '',
+        displayName: uData.displayName || (uData.email ? uData.email.split('@')[0] : ''),
+        assignedByAdmin: !!uData.assignedByAdmin,
+        lastSeen: uData.lastSeen || null
+      };
+    });
+
+    // 2. Fetch ALL transactions across ALL users using collectionGroup('transactions')
+    const allTxSnap = await db.collectionGroup('transactions').get();
+    const records = [];
+    let systemTotalIncome = 0;
+    let systemTotalExpense = 0;
+
+    allTxSnap.forEach(doc => {
+      const data = doc.data() || {};
+      const parentUserDoc = doc.ref.parent.parent;
+      const uid = parentUserDoc ? parentUserDoc.id : (data.userId || 'Unknown');
+      
+      if (uid && uid !== 'Unknown') {
+        allUniqueUserIds.add(uid);
+        userTxCountMap[uid] = (userTxCountMap[uid] || 0) + 1;
+      }
+
+      let email = data.userEmail;
+      let name = data.userName;
+      let isMapped = false;
+
+      if (email && email !== 'Anonymous' && isValidEmail(email)) {
+        isMapped = true;
+      } else if (userMap[uid] && userMap[uid].email) {
+        email = userMap[uid].email;
+        name = userMap[uid].displayName || userMap[uid].email.split('@')[0];
+        isMapped = true;
+      } else {
+        email = uid.length > 14 ? (uid.substring(0, 10) + '...') : uid;
+        name = 'Account (' + email + ')';
+      }
+
+      const amount = Number(data.amount) || 0;
+      const rawType = (data.type || 'OUT').toUpperCase().trim();
+      const isIncome = rawType === 'IN' || rawType === 'INCOME';
+      const isFixed = rawType === 'PERMANENT' || rawType === 'FIXED';
+      const cleanType = isIncome ? 'IN' : (isFixed ? 'PERMANENT' : 'OUT');
+
+      if (isIncome) {
+        systemTotalIncome += amount;
+      } else {
+        systemTotalExpense += amount;
+        if (uid) userSpendMap[uid] = (userSpendMap[uid] || 0) + amount;
+      }
+
+      records.push({
+        id: doc.id,
+        uid: uid,
+        userEmail: email,
+        userName: name,
+        isMapped: isMapped,
+        title: data.title || 'Untitled',
+        amount: amount,
+        type: cleanType,
+        isIncome: isIncome,
+        timestamp: data.timestamp || 'Recent',
+        timestampMillis: data.timestampMillis || (data.createdAt && data.createdAt.toMillis ? data.createdAt.toMillis() : 0),
+        monthKey: data.monthKey || ''
+      });
+    });
+
+    // 3. Construct unified user directory array
+    const usersList = [];
+    allUniqueUserIds.forEach(uid => {
+      const existing = userMap[uid] || { uid: uid, email: '', displayName: '', assignedByAdmin: false };
+      usersList.push({
+        uid: uid,
+        email: existing.email || '',
+        displayName: existing.displayName || (existing.email ? existing.email.split('@')[0] : 'Unassigned User'),
+        isMapped: Boolean(existing.email && existing.email !== 'Anonymous' && isValidEmail(existing.email)),
+        txCount: userTxCountMap[uid] || 0,
+        totalSpent: userSpendMap[uid] || 0
+      });
+    });
+
+    // Sort users: mapped/admin first, then by transaction count
+    usersList.sort((a, b) => b.txCount - a.txCount);
+    allSystemUsers = usersList;
+
+    // 4. Update Quick Stat Cards
+    const totalUsersCount = allUniqueUserIds.size;
+    const usersCountEl = document.getElementById('adminTotalUsers');
+    const totalEntriesEl = document.getElementById('adminTotalEntries');
+    const totalIncomeEl = document.getElementById('adminTotalIncome');
+    const totalExpenseEl = document.getElementById('adminTotalExpense');
+    const tabTxCountEl = document.getElementById('adminTabTxCount');
+    const tabUserCountEl = document.getElementById('adminTabUserCount');
+
+    if (usersCountEl) usersCountEl.innerText = totalUsersCount;
+    if (tabUserCountEl) tabUserCountEl.innerText = totalUsersCount;
+    if (totalEntriesEl) totalEntriesEl.innerText = records.length;
+    if (tabTxCountEl) tabTxCountEl.innerText = records.length;
+    if (totalIncomeEl) totalIncomeEl.innerText = 'Rs. ' + systemTotalIncome.toLocaleString();
+    if (totalExpenseEl) totalExpenseEl.innerText = 'Rs. ' + systemTotalExpense.toLocaleString();
+
+    // 5. Sort all transactions newest first
+    records.sort((a, b) => (b.timestampMillis || 0) - (a.timestampMillis || 0));
+    allSystemTransactions = records;
+
+    // 6. Render views
+    renderAdminTable(allSystemTransactions);
+    renderAdminUsersTable(allSystemUsers);
+
+  } catch (err) {
+    console.error("Error loading master transactions:", err);
+    showToast("Admin Load Error: " + err.message, "error");
+    if (txTbody) {
+      txTbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ef4444; padding: 24px;">Failed to load entries: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  } finally {
+    if (loading) loading.style.display = 'none';
+  }
+}
+
+function renderAdminTable(records) {
+  const tbody = document.getElementById('adminTransactionsTableBody');
+  const countSpan = document.getElementById('adminRecordCount');
+  if (!tbody) return;
+
+  if (countSpan) countSpan.innerText = `Showing ${records.length} entries`;
+
+  if (records.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 30px;">No transaction records found matching your filter.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = records.map((item, index) => {
+    let catClass = 'cat-variable';
+    let catLabel = 'Expense (OUT)';
+    let amtColor = '#f87171';
+    let amtSign = '-';
+
+    if (item.type === 'IN') {
+      catClass = 'cat-income';
+      catLabel = 'Income (IN)';
+      amtColor = '#34d399';
+      amtSign = '+';
+    } else if (item.type === 'PERMANENT') {
+      catClass = 'cat-permanent';
+      catLabel = 'Fixed Monthly';
+      amtColor = '#facc15';
+      amtSign = '-';
+    }
+
+    const assignBtn = !item.isMapped ? `
+      <button type="button" class="btn-assign-email" onclick="promptAssignUserEmail('${item.uid}')" title="Assign Email for this User ID">
+        <i class="fa-solid fa-pen-to-square"></i> Set Email
+      </button>` : '';
+
+    return `
+      <tr>
+        <td style="color: #64748b; font-weight: 600;">${index + 1}</td>
+        <td>
+          <div class="admin-user-pill" title="User ID: ${escapeHtml(item.uid)}">
+            <i class="fa-solid ${item.isMapped ? 'fa-user-check' : 'fa-id-badge'}"></i>
+            <span>${escapeHtml(item.userEmail)}</span>
+            ${assignBtn}
+          </div>
+        </td>
+        <td style="color: #cbd5e1; font-size: 0.82rem;">${escapeHtml(item.timestamp)}</td>
+        <td><strong style="color: #ffffff;">${escapeHtml(item.title)}</strong></td>
+        <td><span class="admin-cat-pill ${catClass}">${catLabel}</span></td>
+        <td style="text-align: right; font-weight: 700; color: ${amtColor}; font-size: 0.95rem;">
+          ${amtSign}Rs. ${item.amount.toLocaleString()}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderAdminUsersTable(users) {
+  const tbody = document.getElementById('adminUsersTableBody');
+  if (!tbody) return;
+
+  if (users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px;">No user accounts found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map((u, index) => {
+    const isOwner = ADMIN_EMAILS.includes(u.email.toLowerCase().trim());
+    const emailDisplay = u.isMapped ? `
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="color: #38bdf8; font-weight: 600;">${escapeHtml(u.email)}</span>
+        ${isOwner ? '<span style="font-size: 0.7rem; background: rgba(250, 204, 21, 0.2); color: #facc15; padding: 2px 6px; border-radius: 4px; font-weight: 700;">ADMIN</span>' : ''}
+      </div>` : `
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="user-status-pill user-status-missing"><i class="fa-solid fa-triangle-exclamation"></i> No Email Linked</span>
+        <button type="button" class="btn-assign-email" onclick="promptAssignUserEmail('${u.uid}')">
+          <i class="fa-solid fa-link"></i> Link Email
+        </button>
+      </div>`;
+
+    const statusBadge = u.isMapped ? `
+      <span class="user-status-pill user-status-connected"><i class="fa-solid fa-circle-check"></i> Connected</span>` : `
+      <span class="user-status-pill user-status-missing"><i class="fa-solid fa-clock"></i> Pending Mapping</span>`;
+
+    return `
+      <tr>
+        <td style="color: #64748b; font-weight: 600;">${index + 1}</td>
+        <td>
+          <code style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #a5b4fc; background: rgba(99, 102, 241, 0.1); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.25);">
+            ${escapeHtml(u.uid)}
+          </code>
+        </td>
+        <td>${emailDisplay}</td>
+        <td>${statusBadge}</td>
+        <td style="text-align: center; font-weight: 700; color: #f1f5f9;">${u.txCount}</td>
+        <td style="text-align: right; font-weight: 700; color: #f87171;">Rs. ${u.totalSpent.toLocaleString()}</td>
+        <td style="text-align: center;">
+          <div style="display: inline-flex; gap: 6px;">
+            <button type="button" class="btn-user-action btn-user-edit" onclick="promptAssignUserEmail('${u.uid}')" title="Change or Set Email">
+              <i class="fa-solid fa-pen"></i> Edit
+            </button>
+            <button type="button" class="btn-user-action btn-user-filter" onclick="filterTransactionsByUser('${escapeHtml(u.email || u.uid)}')" title="Filter ledger by this user">
+              <i class="fa-solid fa-list"></i> Entries
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterTransactionsByUser(identifier) {
+  switchAdminTab('ledger');
+  const searchInput = document.getElementById('adminSearchInput');
+  if (searchInput) {
+    searchInput.value = identifier;
+    filterAdminTable();
+  }
+}
+
+async function promptAssignUserEmail(uid) {
+  const entered = prompt(`Enter Email Address for User ID (${uid}):\n(Aap apne Firebase Console > Authentication tab se dekh kar is user ka email yahan paste kar dein):`);
+  if (!entered || !entered.trim() || !isValidEmail(entered.trim())) {
+    if (entered) showToast("Please enter a valid email address.", "error");
+    return;
+  }
+  const cleanEmail = entered.trim();
+  try {
+    showToast("Linking email to account...", "info");
+    await db.collection('users').doc(uid).set({
+      email: cleanEmail,
+      displayName: cleanEmail.split('@')[0],
+      assignedByAdmin: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    showToast(`✅ Email successfully linked to ${cleanEmail}!`, "success");
+    loadAdminAllTransactions(true); // force reload to update both tables
+  } catch (err) {
+    showToast("Error updating user: " + err.message, "error");
+  }
+}
+
+async function promptAddNewUserToDirectory() {
+  const uid = prompt("Enter User UID from Firebase Console > Authentication tab:\n(e.g. 7qX89yZ2...)");
+  if (!uid || !uid.trim()) return;
+
+  const email = prompt(`Enter Registered Email for UID (${uid.trim()}):\n(e.g. user@gmail.com)`);
+  if (!email || !email.trim() || !isValidEmail(email.trim())) {
+    showToast("Please enter a valid email address.", "error");
+    return;
+  }
+
+  const cleanUid = uid.trim();
+  const cleanEmail = email.trim();
+
+  try {
+    showToast("Adding account to directory...", "info");
+    await db.collection('users').doc(cleanUid).set({
+      email: cleanEmail,
+      displayName: cleanEmail.split('@')[0],
+      assignedByAdmin: true,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    showToast(`✅ User ${cleanEmail} added to Directory!`, "success");
+    loadAdminAllTransactions(true);
+  } catch (err) {
+    showToast("Error adding user: " + err.message, "error");
+  }
+}
+
+function filterAdminTable() {
+  const searchTerm = (document.getElementById('adminSearchInput')?.value || '').toLowerCase().trim();
+  const categoryFilter = document.getElementById('adminCategorySelect')?.value || 'ALL';
+
+  const filtered = allSystemTransactions.filter(item => {
+    const matchesSearch = !searchTerm ||
+      item.userEmail.toLowerCase().includes(searchTerm) ||
+      item.userName.toLowerCase().includes(searchTerm) ||
+      item.uid.toLowerCase().includes(searchTerm) ||
+      item.title.toLowerCase().includes(searchTerm) ||
+      item.amount.toString().includes(searchTerm);
+
+    const matchesCategory = categoryFilter === 'ALL' || item.type === categoryFilter;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  renderAdminTable(filtered);
+}
+
+function filterAdminUsersTable() {
+  const term = (document.getElementById('adminUserSearchInput')?.value || '').toLowerCase().trim();
+  if (!term) {
+    renderAdminUsersTable(allSystemUsers);
+    return;
+  }
+
+  const filtered = allSystemUsers.filter(u =>
+    u.uid.toLowerCase().includes(term) ||
+    u.email.toLowerCase().includes(term) ||
+    u.displayName.toLowerCase().includes(term)
+  );
+
+  renderAdminUsersTable(filtered);
+}
+
+function exportAdminDataExcel() {
+  if (!allSystemTransactions || allSystemTransactions.length === 0) {
+    showToast("No data to export.", "info");
+    return;
+  }
+
+  const exportData = [
+    ["SMARTFLOW MASTER SYSTEM AUDIT REPORT (ALL USERS)", "", "", "", "", "", ""],
+    ["Generated By:", "Admin (hyjano040@gmail.com)", "", "Generated At:", new Date().toLocaleString(), "", ""],
+    ["", "", "", "", "", "", ""],
+    ["#", "User UID", "User Email", "User Name", "Date & Time", "Title / Source", "Category", "Amount (Rs.)"]
+  ];
+
+  allSystemTransactions.forEach((item, idx) => {
+    const isIncome = item.type === 'IN';
+    const isFixed = item.type === 'PERMANENT';
+    const catName = isIncome ? 'Income (Money IN)' : (isFixed ? 'Fixed Monthly Outflow' : 'Expense (Money OUT)');
+    const signedAmount = (isIncome ? '+ ' : '- ') + 'Rs. ' + item.amount.toLocaleString();
+
+    exportData.push([
+      idx + 1,
+      item.uid,
+      item.userEmail,
+      item.userName,
+      item.timestamp,
+      item.title,
+      catName,
+      signedAmount
+    ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(exportData);
+  XLSX.utils.book_append_sheet(wb, ws, "All Users Ledger");
+  XLSX.writeFile(wb, `SmartFlow_Master_All_Users_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  showToast("📊 Master Excel Report downloaded successfully!", "success");
+}

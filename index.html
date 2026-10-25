@@ -26,8 +26,8 @@
   <link rel="apple-touch-icon" href="logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
   
-  <!-- Custom Modern CSS (v3.5 Ultra Premium & Responsive) -->
-  <link rel="stylesheet" href="style.css?v=3.5">
+  <!-- Custom Modern CSS (v3.8 Ultra Premium & Responsive) -->
+  <link rel="stylesheet" href="style.css?v=3.8">
   
   <!-- Firebase SDKs (v10 Compat Mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -94,7 +94,12 @@
       <div class="form-group">
         <div class="label-with-action">
           <label for="authPassword"><i class="fa-solid fa-lock"></i> Password</label>
-          <a href="javascript:void(0)" class="forgot-pwd-link" id="forgotPwdBtn" onclick="handleForgotPassword()">Forgot?</a>
+          <div class="label-actions-wrap">
+            <a href="javascript:void(0)" class="pin-quick-link" id="pinQuickFillLink" onclick="handleQuickPinClick()" style="display: none;" title="Auto-fill with 4-Digit Quick PIN">
+              <i class="fa-solid fa-key"></i> Auto-fill with PIN
+            </a>
+            <a href="javascript:void(0)" class="forgot-pwd-link" id="forgotPwdBtn" onclick="handleForgotPassword()">Forgot?</a>
+          </div>
         </div>
         <div class="input-wrapper">
           <input type="password" id="authPassword" placeholder="Minimum 6 characters" required autocomplete="current-password">
@@ -136,10 +141,43 @@
         </button>
       </div>
 
+      <!-- Google Direct Sign In / Sign Up Button -->
+      <div class="google-auth-box">
+        <div class="auth-divider">
+          <span>OR CONTINUE WITH</span>
+        </div>
+        <button type="button" class="btn-google-auth" onclick="handleGoogleAuth()">
+          <svg class="google-svg-icon" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.79l7.97-6.2z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span id="googleBtnLabel">Continue with Google</span>
+        </button>
+      </div>
+
+      <!-- Safari / iPhone & Mobile Fast 4-Digit PIN Access -->
+      <div id="quickPinContainer" class="quick-pin-box">
+        <div class="auth-divider">
+          <span>OR FAST PIN ACCESS</span>
+        </div>
+        <button type="button" id="btnQuickPinLogin" class="btn-quick-pin" onclick="handleQuickPinClick()">
+          <div class="btn-pin-icon-wrap">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div class="quick-pin-label">
+            <strong id="quickPinBtnTitle">Quick PIN Auto-Fill & Login</strong>
+            <span id="quickPinBtnSub">Fast 1-Tap Access for iPhone Safari & Web</span>
+          </div>
+          <i class="fa-solid fa-chevron-right pin-arrow"></i>
+        </button>
+      </div>
+
       <!-- Biometric / Fingerprint Quick Login (Available in APK / Biometric-enabled devices) -->
       <div id="biometricLoginContainer" class="biometric-login-box" style="display: none;">
         <div class="auth-divider">
-          <span>OR</span>
+          <span>OR BIOMETRIC</span>
         </div>
         <button type="button" id="biometricLoginBtn" class="btn-biometric" onclick="triggerBiometricLogin()">
           <i class="fa-solid fa-fingerprint"></i>
@@ -192,6 +230,18 @@
             </div>
           </div>
         </div>
+
+        <!-- Quick 4-Digit PIN Access Button (iPhone Safari & Web) -->
+        <button type="button" class="btn-pin-pill" onclick="openPinSetupModal()" title="Manage 4-Digit Quick PIN for iPhone Safari & Web">
+          <i class="fa-solid fa-key"></i>
+          <span>Quick PIN</span>
+        </button>
+
+        <!-- Admin Master Panel Button (Exclusively visible to hyjano040@gmail.com) -->
+        <button id="adminPanelBtn" class="btn-admin-pill" onclick="openAdminModal()" style="display: none;" title="Master Admin Dashboard">
+          <i class="fa-solid fa-crown"></i>
+          <span>Admin Panel</span>
+        </button>
 
         <button onclick="handleLogout()" class="btn-logout" title="Sign Out">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -642,13 +692,316 @@
 
   </div>
 
-  <script src="script.js?v=3.5"></script>
+  <!-- ==========================================================================
+       MASTER ADMIN DASHBOARD MODAL (Exclusively for hyjano040@gmail.com)
+       ========================================================================== -->
+  <div id="adminModal" class="admin-modal-overlay" style="display: none;">
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <div class="admin-title-wrap">
+          <div class="admin-badge-icon">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+          <div>
+            <h3>SmartFlow Master Admin Portal</h3>
+            <p>Live Activity & Historical Records Across All Registered Users</p>
+          </div>
+        </div>
+        <div class="admin-header-actions">
+          <button type="button" class="btn-admin-export" onclick="exportAdminDataExcel()" title="Download Complete All-Users Master Excel">
+            <i class="fa-solid fa-file-excel"></i>
+            <span>Export Master Excel</span>
+          </button>
+          <button type="button" class="btn-admin-close" onclick="closeAdminModal()" title="Close Portal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="admin-metrics-grid">
+        <div class="admin-metric-card">
+          <div class="admin-metric-icon icon-users">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div class="admin-metric-info">
+            <span class="admin-metric-label">Registered Accounts</span>
+            <strong id="adminTotalUsers" class="admin-metric-val">0</strong>
+          </div>
+        </div>
+
+        <div class="admin-metric-card">
+          <div class="admin-metric-icon icon-records">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div class="admin-metric-info">
+            <span class="admin-metric-label">Total Transactions</span>
+            <strong id="adminTotalEntries" class="admin-metric-val">0</strong>
+          </div>
+        </div>
+
+        <div class="admin-metric-card">
+          <div class="admin-metric-icon icon-inflow">
+            <i class="fa-solid fa-arrow-trend-up"></i>
+          </div>
+          <div class="admin-metric-info">
+            <span class="admin-metric-label">Total System Inflow</span>
+            <strong id="adminTotalIncome" class="admin-metric-val text-income">Rs. 0</strong>
+          </div>
+        </div>
+
+        <div class="admin-metric-card">
+          <div class="admin-metric-icon icon-outflow">
+            <i class="fa-solid fa-arrow-trend-down"></i>
+          </div>
+          <div class="admin-metric-info">
+            <span class="admin-metric-label">Total System Outflow</span>
+            <strong id="adminTotalExpense" class="admin-metric-val text-expense">Rs. 0</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Navigation Tabs -->
+      <div class="admin-tab-nav">
+        <button type="button" class="admin-tab-btn active" id="adminTabLedgerBtn" onclick="switchAdminTab('ledger')">
+          <i class="fa-solid fa-receipt"></i>
+          <span>Transactions Ledger (<strong id="adminTabTxCount">0</strong>)</span>
+        </button>
+        <button type="button" class="admin-tab-btn" id="adminTabUsersBtn" onclick="switchAdminTab('users')">
+          <i class="fa-solid fa-users-gear"></i>
+          <span>User Directory & Accounts (<strong id="adminTabUserCount">0</strong>)</span>
+        </button>
+      </div>
+
+      <!-- VIEW 1: MASTER TRANSACTIONS LEDGER -->
+      <div id="adminLedgerView" class="admin-view-container">
+        <!-- Filter & Search Controls -->
+        <div class="admin-controls-bar">
+          <div class="admin-search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="adminSearchInput" placeholder="Filter by User Email, Title, or Category..." oninput="filterAdminTable()">
+          </div>
+          <div class="admin-type-filter">
+            <select id="adminCategorySelect" onchange="filterAdminTable()">
+              <option value="ALL">All Categories</option>
+              <option value="IN">💚 Income Only</option>
+              <option value="OUT">💔 Expense Only</option>
+              <option value="PERMANENT">🔒 Fixed Outflow Only</option>
+            </select>
+          </div>
+          <button type="button" class="btn-admin-refresh" onclick="loadAdminAllTransactions(true)" title="Refresh Data">
+            <i class="fa-solid fa-rotate"></i> Refresh
+          </button>
+        </div>
+
+        <!-- Master Ledger Table Container -->
+        <div class="admin-table-scroll">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 45px;">#</th>
+                <th>User Account</th>
+                <th>Date & Time</th>
+                <th>Title / Source</th>
+                <th>Category</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="adminTransactionsTableBody">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW 2: USER DIRECTORY & EMAIL LINKING -->
+      <div id="adminUsersView" class="admin-view-container" style="display: none;">
+        <div class="admin-controls-bar">
+          <div class="admin-search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="adminUserSearchInput" placeholder="Search by UID, Linked Email, or Name..." oninput="filterAdminUsersTable()">
+          </div>
+          <button type="button" class="btn-add-user-modal" onclick="promptAddNewUserToDirectory()" title="Link or Register User from Firebase Console">
+            <i class="fa-solid fa-user-plus"></i> + Add / Link User
+          </button>
+          <button type="button" class="btn-admin-refresh" onclick="loadAdminAllTransactions(true)" title="Refresh Accounts">
+            <i class="fa-solid fa-rotate"></i> Refresh
+          </button>
+        </div>
+
+        <div class="admin-table-scroll">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 45px;">#</th>
+                <th>User ID (Firestore / Auth UID)</th>
+                <th>Linked Email Address</th>
+                <th>Status</th>
+                <th style="text-align: center;">Entries</th>
+                <th style="text-align: right;">Total Outflow</th>
+                <th style="text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminUsersTableBody">
+              <!-- Dynamically populated user rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-modal-footer">
+        <span id="adminRecordCount">Showing 0 entries</span>
+        <span class="admin-confidential-tag"><i class="fa-solid fa-lock"></i> Confidential Master Access: hyjano040@gmail.com</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       1. EMAIL VERIFICATION REQUIRED MODAL
+       ========================================================================== -->
+  <div id="emailVerifyRequiredModal" class="modal-backdrop verify-modal-overlay" style="display: none;">
+    <div class="modal-card verify-modal-card">
+      <div class="verify-icon-wrap">
+        <i class="fa-solid fa-envelope-circle-check"></i>
+      </div>
+      <h3>Email Verification Required</h3>
+      <p class="verify-desc">
+        Aapka account create ho chuka hai, lekin app mein login karne ke liye <strong>pehle email verify karna laazmi hai</strong>.
+      </p>
+      
+      <div class="verify-target-badge">
+        <i class="fa-regular fa-paper-plane"></i>
+        <span id="verifyTargetEmail">user@example.com</span>
+      </div>
+
+      <div class="verify-instructions-box">
+        <p><i class="fa-solid fa-circle-info"></i> Apne email inbox (aur <strong>Spam / Junk folder</strong>) mein ja kar <strong>Firebase Verification Link</strong> par click karein.</p>
+        <p><i class="fa-solid fa-check"></i> Verify karne ke baad foran neeche diye gaye button par click karein ya login karein.</p>
+      </div>
+
+      <div class="verify-actions">
+        <button type="button" class="btn-primary" onclick="checkIfVerifiedAndProceed()">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Maine Verify Kar Liya (Log In)</span>
+        </button>
+        <button type="button" class="btn-secondary" onclick="resendVerificationForEmail()">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span>Resend Verification Email</span>
+        </button>
+      </div>
+
+      <button type="button" class="btn-close-verify" onclick="closeEmailVerifyModal()">
+        <i class="fa-solid fa-arrow-left"></i> <span>Back to Login Screen</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       2. IPHONE SAFARI 4-DIGIT QUICK PIN KEYPAD MODAL
+       ========================================================================== -->
+  <div id="pinKeypadModal" class="modal-backdrop pin-modal-overlay" style="display: none;">
+    <div class="modal-card pin-keypad-card">
+      <div class="pin-card-header">
+        <div class="pin-icon-badge">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h3>Enter 4-Digit PIN</h3>
+        <p id="pinModalSubtitle">Auto-fills your login and unlocks SmartFlow</p>
+      </div>
+
+      <!-- 4 PIN Indicator Dots -->
+      <div class="pin-dots-container" id="pinDotsRow">
+        <div class="pin-dot" id="pdot1"></div>
+        <div class="pin-dot" id="pdot2"></div>
+        <div class="pin-dot" id="pdot3"></div>
+        <div class="pin-dot" id="pdot4"></div>
+      </div>
+
+      <!-- Numeric Keypad Grid -->
+      <div class="pin-keypad-grid">
+        <button type="button" class="pin-key" onclick="pressPinKey('1')">1</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('2')">2</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('3')">3</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('4')">4</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('5')">5</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('6')">6</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('7')">7</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('8')">8</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('9')">9</button>
+        <button type="button" class="pin-key pin-key-action" onclick="closePinKeypadModal()">Cancel</button>
+        <button type="button" class="pin-key" onclick="pressPinKey('0')">0</button>
+        <button type="button" class="pin-key pin-key-action" onclick="pressPinBackspace()"><i class="fa-solid fa-delete-left"></i></button>
+      </div>
+
+      <div class="pin-card-footer">
+        <a href="javascript:void(0)" onclick="openPinSetupModal()">Change / Reset PIN</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       3. SETUP 4-DIGIT QUICK PIN MODAL
+       ========================================================================== -->
+  <div id="pinSetupModal" class="modal-backdrop pin-modal-overlay" style="display: none;">
+    <div class="modal-card pin-setup-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <div class="modal-icon-badge"><i class="fa-solid fa-key"></i></div>
+          <div>
+            <h3>Setup 4-Digit Quick PIN</h3>
+            <p class="modal-subtitle">Instant 1-tap auto-fill for iPhone Safari & Web</p>
+          </div>
+        </div>
+        <button class="btn-close-modal" onclick="closePinSetupModal()">&times;</button>
+      </div>
+
+      <div class="pin-setup-body">
+        <p class="pin-setup-desc">
+          Apne account ke liye koi bhi <strong>4-digit PIN</strong> set karein (jaise 1234). Agli baar jab aap iPhone Safari ya PC par aayenge toh sirf yeh PIN enter karne se aapka email aur password automatically fill ho kar login ho jayega!
+        </p>
+
+        <div class="form-group">
+          <label for="setupPinEmail"><i class="fa-regular fa-envelope"></i> Account Email</label>
+          <div class="input-wrapper">
+            <input type="email" id="setupPinEmail" placeholder="your-email@example.com" autocomplete="email">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="setupPinPass"><i class="fa-solid fa-lock"></i> Account Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="setupPinPass" placeholder="Enter your account password" autocomplete="current-password">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="setupPinCode"><i class="fa-solid fa-shield-halved"></i> Choose 4-Digit PIN</label>
+          <div class="input-wrapper">
+            <input type="password" id="setupPinCode" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="e.g. 1234" style="font-size: 1.3rem; letter-spacing: 8px; text-align: center;">
+          </div>
+        </div>
+
+        <div class="pin-setup-actions">
+          <button type="button" class="btn-primary" onclick="saveQuickPin()">
+            <i class="fa-solid fa-check"></i>
+            <span>Save Quick PIN</span>
+          </button>
+          <button type="button" id="btnRemovePin" class="btn-secondary" onclick="removeQuickPin()" style="display: none;">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>Remove PIN</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js?v=3.8"></script>
   
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=3.5')
+        navigator.serviceWorker.register('./sw.js?v=3.8')
           .then(reg => {
             reg.update(); // Force immediate update
             console.log('SmartFlow PWA ServiceWorker active:', reg.scope);
