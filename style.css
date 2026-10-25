@@ -1120,48 +1120,56 @@ button {
   align-items: flex-start;
   gap: 16px;
   transition: all var(--trans-normal);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-4px) scale(1.015);
 }
 
 .card::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 100%);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 100%);
   pointer-events: none;
+  border-radius: 20px 20px 0 0;
 }
 
 .income-bg {
   background: var(--income-gradient);
-  box-shadow: 0 10px 25px -4px var(--income-glow);
+  box-shadow: 0 12px 28px -4px var(--income-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .expense-bg {
   background: var(--expense-gradient);
-  box-shadow: 0 10px 25px -4px var(--expense-glow);
+  box-shadow: 0 12px 28px -4px var(--expense-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .balance-bg {
   background: var(--balance-gradient);
-  box-shadow: 0 10px 25px -4px var(--balance-glow);
+  box-shadow: 0 12px 28px -4px var(--balance-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .card-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .card-content {
@@ -1170,17 +1178,17 @@ button {
 }
 
 .card-content p {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  font-weight: 600;
-  opacity: 0.88;
+  letter-spacing: 0.9px;
+  font-weight: 700;
+  opacity: 0.9;
   margin-bottom: 6px;
 }
 
 .card-content h3 {
   font-family: var(--font-mono);
-  font-size: 1.45rem;
+  font-size: clamp(1.25rem, 2.2vw, 1.55rem);
   font-weight: 700;
   letter-spacing: -0.5px;
   color: #ffffff;
@@ -1188,6 +1196,7 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .card-hint {
@@ -1199,6 +1208,106 @@ button {
   padding: 3px 8px;
   border-radius: 20px;
   font-weight: 600;
+}
+
+/* ==========================================================================
+   CASHFLOW INFLOW VS OUTFLOW PROGRESS BAR
+   ========================================================================== */
+.cashflow-bar-card {
+  margin-top: 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all var(--trans-normal);
+}
+
+.cashflow-bar-card:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: var(--shadow-md);
+}
+
+.cashflow-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cashflow-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cashflow-title i {
+  color: var(--brand-primary);
+}
+
+.cashflow-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.82rem;
+}
+
+.cashflow-stat-in {
+  color: var(--income-color);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cashflow-stat-in i {
+  font-size: 0.55rem;
+}
+
+.cashflow-stat-out {
+  color: var(--expense-color);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cashflow-stat-out i {
+  font-size: 0.55rem;
+}
+
+.cashflow-track {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+}
+
+.cashflow-segment {
+  height: 100%;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.segment-income {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
+}
+
+.segment-expense {
+  background: linear-gradient(90deg, #f43f5e 0%, #e11d48 100%);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.45);
 }
 
 /* ==========================================================================
@@ -1242,9 +1351,93 @@ button {
 
 .form-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1.3fr 1fr;
+  grid-template-columns: 1.3fr 1.1fr 1.4fr 1.1fr;
   gap: 16px;
   margin-bottom: 20px;
+}
+
+/* Quick Amount Preset Chips */
+.quick-amounts-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-quick-amount {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--bg-tag);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all var(--trans-fast);
+}
+
+.btn-quick-amount:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--brand-primary);
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-quick-amount:active {
+  transform: scale(0.96);
+}
+
+/* Category Quick Switcher Chips */
+.category-quick-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.cat-chip {
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: var(--bg-input);
+  border: 1.5px solid var(--input-border);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all var(--trans-normal);
+}
+
+.cat-chip:hover {
+  border-color: var(--brand-primary);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.cat-chip.active[data-type="IN"] {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+}
+
+.cat-chip.active[data-type="OUT"] {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: #f43f5e;
+  color: #f43f5e;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.25);
+}
+
+.cat-chip.active[data-type="PERMANENT"] {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
 }
 
 .form-actions {
@@ -2721,20 +2914,137 @@ button:hover::after,
     width: 100%;
   }
 
-  .table-controls {
+  .filter-select-box {
     width: 100%;
-    justify-content: space-between;
   }
 
-  .table-wrapper {
+  .filter-select-box select {
+    width: 100%;
+  }
+
+  .btn-export-excel {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .table-responsive {
     width: 100%;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
-    border-radius: 12px;
+    border-radius: 14px;
   }
 
-  .table-wrapper table {
+  .table-responsive table {
     min-width: 580px;
+  }
+}
+
+/* 2.5 Modern Card Transformation on Mobile (<= 640px) */
+@media (max-width: 640px) {
+  .table-responsive {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow-x: visible !important;
+  }
+
+  #transactionsMainTable {
+    min-width: 100% !important;
+    width: 100% !important;
+    display: block;
+  }
+
+  #transactionsMainTable thead {
+    display: none !important; /* Hide header row on cards layout */
+  }
+
+  #transactionsMainTable tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  #transactionsMainTable tbody tr {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 16px 14px;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--trans-fast);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #transactionsMainTable tbody tr:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  #transactionsMainTable tbody td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 0 !important;
+    border: none !important;
+    font-size: 0.88rem;
+    text-align: right;
+    width: 100%;
+  }
+
+  #transactionsMainTable tbody td::before {
+    content: attr(data-label);
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  #transactionsMainTable tbody td strong {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+  }
+
+  #transactionsMainTable tbody td.td-amount {
+    font-size: 1.15rem !important;
+    font-weight: 800;
+  }
+
+  #transactionsMainTable tbody td[data-label="Action"] {
+    justify-content: flex-end !important;
+    margin-top: 4px;
+    padding-top: 10px !important;
+    border-top: 1px dashed var(--border-color) !important;
+  }
+
+  #transactionsMainTable tbody td[data-label="Action"]::before {
+    display: none !important;
+  }
+
+  .btn-delete {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    background: rgba(244, 63, 94, 0.1);
+    color: #f43f5e;
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .btn-delete::after {
+    content: ' Delete Record';
+    font-weight: 600;
   }
 }
 
@@ -2831,6 +3141,40 @@ button:hover::after,
   select {
     padding: 10px 12px;
     font-size: 0.9rem;
+  }
+
+  /* Compact Chips & Cashflow Bar on Small Screens */
+  .category-quick-chips {
+    gap: 4px;
+  }
+
+  .cat-chip {
+    padding: 6px 4px;
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+
+  .quick-amounts-bar {
+    gap: 4px;
+  }
+
+  .btn-quick-amount {
+    padding: 2px 6px;
+    font-size: 0.68rem;
+  }
+
+  .cashflow-bar-card {
+    padding: 12px 14px;
+    margin-top: 14px;
+  }
+
+  .cashflow-title {
+    font-size: 0.78rem;
+  }
+
+  .cashflow-stats {
+    font-size: 0.72rem;
+    gap: 8px;
   }
 
   /* Compact User Badge on Small Screens */

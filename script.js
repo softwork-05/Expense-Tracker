@@ -246,7 +246,7 @@ function validateEmailLive() {
   }
 }
 
-// Attach real-time input listeners
+// Attach real-time input listeners & initialize UI enhancements
 document.addEventListener('DOMContentLoaded', () => {
   const emailInput = document.getElementById('authEmail');
   const pwdInput = document.getElementById('authPassword');
@@ -261,17 +261,109 @@ document.addEventListener('DOMContentLoaded', () => {
   if (confirmInput) {
     confirmInput.addEventListener('input', validatePasswordLive);
   }
+
+  // Initialize interactive cursor & button sheen effects
+  initCustomCursor();
 });
 
 // ==========================================================================
-// Category Type Selector Notice
+// Interactive Custom Cursor & Dynamic Button Sheen
 // ==========================================================================
+function initCustomCursor() {
+  const dot = document.getElementById('customCursorDot');
+  const ring = document.getElementById('customCursorRing');
+  if (!dot || !ring) return;
+
+  // Don't activate on coarse touch devices
+  if (window.matchMedia('(pointer: coarse)').matches) {
+    dot.style.display = 'none';
+    ring.style.display = 'none';
+    return;
+  }
+
+  let mouseX = -100, mouseY = -100;
+  let ringX = -100, ringY = -100;
+
+  window.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    dot.style.opacity = '1';
+    ring.style.opacity = '1';
+    dot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+
+    // Dynamic button spotlight sheen coordinate tracking
+    const target = e.target.closest('button, .btn-primary, .btn-secondary, .pill-btn, .btn-export-excel, .btn-today-pill, .btn-secondary-sm, .btn-advisor-toggle, .btn-logout, .btn-month-nav, .auth-tab, .th-sortable, .cat-chip, .btn-quick-amount');
+    if (target) {
+      const rect = target.getBoundingClientRect();
+      target.style.setProperty('--cursor-x', `${e.clientX - rect.left}px`);
+      target.style.setProperty('--cursor-y', `${e.clientY - rect.top}px`);
+    }
+  });
+
+  // Smooth trailing outer ring with fluid RAF damping
+  function renderRing() {
+    ringX += (mouseX - ringX) * 0.18;
+    ringY += (mouseY - ringY) * 0.18;
+    ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
+    requestAnimationFrame(renderRing);
+  }
+  renderRing();
+
+  // Mouse hover state changes
+  document.addEventListener('mouseover', (e) => {
+    if (e.target.closest('button, a, input, select, .th-sortable, .pill-btn, .cat-chip, .btn-quick-amount, .user-avatar-wrap, .btn-month-nav')) {
+      document.body.classList.add('cursor-hover-active');
+    }
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    if (e.target.closest('button, a, input, select, .th-sortable, .pill-btn, .cat-chip, .btn-quick-amount, .user-avatar-wrap, .btn-month-nav')) {
+      document.body.classList.remove('cursor-hover-active');
+    }
+  });
+
+  document.addEventListener('mousedown', () => document.body.classList.add('cursor-clicking'));
+  document.addEventListener('mouseup', () => document.body.classList.remove('cursor-clicking'));
+}
+
+// ==========================================================================
+// Category Quick Chips & Quick Amount Presets
+// ==========================================================================
+function selectCategoryChip(type) {
+  const select = document.getElementById('type');
+  if (select) {
+    select.value = type;
+    handleTypeChange();
+  }
+  const chips = document.querySelectorAll('.cat-chip');
+  chips.forEach(chip => {
+    chip.classList.toggle('active', chip.getAttribute('data-type') === type);
+  });
+}
+
+function addQuickAmount(delta) {
+  const amountInput = document.getElementById('amount');
+  if (!amountInput) return;
+  const currentVal = parseFloat(amountInput.value) || 0;
+  amountInput.value = currentVal + delta;
+  amountInput.dispatchEvent(new Event('input'));
+  showToast(`Added Rs. ${delta.toLocaleString()} (Total: Rs. ${(currentVal + delta).toLocaleString()})`, 'info');
+}
+
+// Category Type Selector Notice
 function handleTypeChange() {
-  const type = document.getElementById('type').value;
+  const select = document.getElementById('type');
+  const type = select ? select.value : 'OUT';
   const notice = document.getElementById('permanentNotice');
   if (notice) {
     notice.style.display = type === 'PERMANENT' ? 'flex' : 'none';
   }
+
+  // Keep Category Chips in sync
+  const chips = document.querySelectorAll('.cat-chip');
+  chips.forEach(chip => {
+    chip.classList.toggle('active', chip.getAttribute('data-type') === type);
+  });
 }
 
 // ==========================================================================
@@ -1208,10 +1300,31 @@ function updateDashboardView() {
     }
   }
 
-  // 4. Update Smart Month-End Financial Health & Savings Advisor
+  // 4. Update Visual Cashflow Ratio Bar
+  const elCashflowInPct = document.getElementById('cashflowInPct');
+  const elCashflowOutPct = document.getElementById('cashflowOutPct');
+  const elCashflowIncomeSeg = document.getElementById('cashflowIncomeSeg');
+  const elCashflowExpenseSeg = document.getElementById('cashflowExpenseSeg');
+
+  if (totalIncome > 0) {
+    const retainedRatio = Math.max(0, Math.min(100, Math.round((Math.max(0, net) / totalIncome) * 100)));
+    const spentRatio = Math.min(100, Math.round((totalExpense / totalIncome) * 100));
+    
+    if (elCashflowInPct) elCashflowInPct.innerText = `${retainedRatio}%`;
+    if (elCashflowOutPct) elCashflowOutPct.innerText = `${spentRatio}%`;
+    if (elCashflowIncomeSeg) elCashflowIncomeSeg.style.width = `${Math.max(4, retainedRatio)}%`;
+    if (elCashflowExpenseSeg) elCashflowExpenseSeg.style.width = `${Math.max(4, Math.min(96, spentRatio))}%`;
+  } else {
+    if (elCashflowInPct) elCashflowInPct.innerText = '0%';
+    if (elCashflowOutPct) elCashflowOutPct.innerText = totalExpense > 0 ? '100%' : '0%';
+    if (elCashflowIncomeSeg) elCashflowIncomeSeg.style.width = '0%';
+    if (elCashflowExpenseSeg) elCashflowExpenseSeg.style.width = totalExpense > 0 ? '100%' : '0%';
+  }
+
+  // 5. Update Smart Month-End Financial Health & Savings Advisor
   updateAdvisorView(totalIncome, totalExpense, net, monthFiltered);
 
-  // 5. Render Table with further text search and type filter
+  // 6. Render Table with further text search and type filter
   renderTransactionsTable(monthFiltered);
 }
 
@@ -1281,11 +1394,11 @@ function renderTransactionsTable(sourceTransactions) {
 
     const row = table.insertRow();
     row.innerHTML = `
-      <td>${item.timestamp || 'Just now'}</td>
-      <td><strong>${escapeHtml(item.title)}</strong></td>
-      <td>${typeTag}</td>
-      <td class="td-amount ${amountClass}">${amountPrefix}Rs. ${(item.amount || 0).toLocaleString()}</td>
-      <td style="text-align: center;">
+      <td data-label="Date & Time">${item.timestamp || 'Just now'}</td>
+      <td data-label="Title / Source"><strong>${escapeHtml(item.title)}</strong></td>
+      <td data-label="Category">${typeTag}</td>
+      <td data-label="Amount" class="td-amount ${amountClass}">${amountPrefix}Rs. ${(item.amount || 0).toLocaleString()}</td>
+      <td data-label="Action" style="text-align: center;">
         <button class="btn-delete" onclick="deleteTransaction('${item.id}')" title="Delete record">
           <i class="fa-regular fa-trash-can"></i>
         </button>

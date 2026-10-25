@@ -26,8 +26,8 @@
   <link rel="apple-touch-icon" href="logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
   
-  <!-- Custom Modern CSS (v2.5 Cache Busting) -->
-  <link rel="stylesheet" href="style.css?v=2.5">
+  <!-- Custom Modern CSS (v3.0 Ultra Premium & Responsive) -->
+  <link rel="stylesheet" href="style.css?v=3.0">
   
   <!-- Firebase SDKs (v10 Compat Mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -266,6 +266,24 @@
         </div>
 
       </div>
+
+      <!-- Interactive Cashflow Ratio & Balance Progress Bar -->
+      <div class="cashflow-bar-card" id="cashflowBarCard">
+        <div class="cashflow-bar-header">
+          <div class="cashflow-title">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Cashflow Inflow vs Outflow Ratio</span>
+          </div>
+          <div class="cashflow-stats">
+            <span class="cashflow-stat-in"><i class="fa-solid fa-circle"></i> Inflow Retained: <strong id="cashflowInPct">0%</strong></span>
+            <span class="cashflow-stat-out"><i class="fa-solid fa-circle"></i> Spent: <strong id="cashflowOutPct">0%</strong></span>
+          </div>
+        </div>
+        <div class="cashflow-track">
+          <div class="cashflow-segment segment-income" id="cashflowIncomeSeg" style="width: 50%;" title="Retained Savings"></div>
+          <div class="cashflow-segment segment-expense" id="cashflowExpenseSeg" style="width: 50%;" title="Total Expenses Spent"></div>
+        </div>
+      </div>
     </section>
 
     <!-- Smart Financial Health & Month-End Savings Advisor -->
@@ -468,14 +486,31 @@
           <div class="input-wrapper">
             <input type="number" id="amount" placeholder="Enter amount (e.g. 5000)" min="1" step="any" required>
           </div>
+          <div class="quick-amounts-bar">
+            <button type="button" class="btn-quick-amount" onclick="addQuickAmount(500)">+500</button>
+            <button type="button" class="btn-quick-amount" onclick="addQuickAmount(1000)">+1,000</button>
+            <button type="button" class="btn-quick-amount" onclick="addQuickAmount(5000)">+5,000</button>
+            <button type="button" class="btn-quick-amount" onclick="addQuickAmount(10000)">+10,000</button>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="type"><i class="fa-solid fa-tags"></i> Transaction Category</label>
-          <div class="input-wrapper select-wrapper">
+          <label for="type"><i class="fa-solid fa-tags"></i> Category</label>
+          <div class="category-quick-chips">
+            <button type="button" class="cat-chip" data-type="IN" onclick="selectCategoryChip('IN')">
+              <i class="fa-solid fa-arrow-down-left"></i> Income
+            </button>
+            <button type="button" class="cat-chip active" data-type="OUT" onclick="selectCategoryChip('OUT')">
+              <i class="fa-solid fa-arrow-up-right"></i> Expense
+            </button>
+            <button type="button" class="cat-chip" data-type="PERMANENT" onclick="selectCategoryChip('PERMANENT')">
+              <i class="fa-solid fa-repeat"></i> Fixed
+            </button>
+          </div>
+          <div class="input-wrapper select-wrapper" style="margin-top: 6px;">
             <select id="type" onchange="handleTypeChange()">
               <option value="IN">💚 Income (Money IN)</option>
-              <option value="OUT">💔 Expense (Money OUT - Normal)</option>
+              <option value="OUT" selected>💔 Expense (Money OUT - Normal)</option>
               <option value="PERMANENT">🔒 Permanent / Fixed Expense (Auto Monthly)</option>
             </select>
           </div>
@@ -596,7 +631,7 @@
 
   </div>
 
-  <script src="script.js?v=2.4"></script>
+  <script src="script.js?v=3.0"></script>
   
   <!-- PWA Service Worker Registration -->
   <script>
