@@ -34,6 +34,43 @@ let activeMonthKey = getCurrentMonthKey(); // e.g. "2026-10" or "ALL"
 let currentSortDirection = 'desc'; // 'desc' = Newest date & time first, 'asc' = Oldest first
 
 // ==========================================================================
+// Admin & Platform Restrictions:
+// 1. Admin Panel is strictly and exclusively visible on PC desktop website view
+// 2. Quick PIN option is strictly and exclusively for iPhone Safari browser
+// ==========================================================================
+const ADMIN_EMAILS = ['hyjano040@gmail.com'];
+
+function isIPhoneSafari() {
+  const ua = window.navigator.userAgent || '';
+  const isIPhone = /iPhone|iPod/i.test(ua);
+  const isNotOtherBrowser = !/CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Focus/i.test(ua);
+  const isSafari = /Safari/i.test(ua) && /Version\//i.test(ua);
+  return isIPhone && isSafari && isNotOtherBrowser;
+}
+
+function isPCDesktopView() {
+  const ua = window.navigator.userAgent || '';
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+  const isDesktopWidth = window.innerWidth >= 1024;
+  return isDesktopWidth && !isMobileUA;
+}
+
+function updateAdminButtonVisibility() {
+  const adminBtn = document.getElementById('adminPanelBtn');
+  if (!adminBtn) return;
+  const isAuthedAdmin = currentUser && currentUser.email && ADMIN_EMAILS.includes(currentUser.email.toLowerCase().trim());
+  if (isAuthedAdmin && isPCDesktopView()) {
+    adminBtn.style.display = 'inline-flex';
+  } else {
+    adminBtn.style.display = 'none';
+  }
+}
+
+window.addEventListener('resize', () => {
+  updateAdminButtonVisibility();
+});
+
+// ==========================================================================
 // Theme Management (Dark / Light)
 // ==========================================================================
 function initTheme() {
@@ -121,7 +158,7 @@ function switchAuthTab(mode) {
     if (passwordValidationBox) passwordValidationBox.style.display = 'none';
     if (forgotPwdBtn) forgotPwdBtn.style.display = 'inline';
     if (googleBtnLabel) googleBtnLabel.innerText = 'Continue with Google';
-    if (quickPinContainer) quickPinContainer.style.display = 'flex';
+    if (quickPinContainer) quickPinContainer.style.display = isIPhoneSafari() ? 'flex' : 'none';
     authSwitchPrompt.innerHTML = `Don't have an account? <a href="javascript:void(0)" onclick="switchAuthTab('signup')">Sign up</a>`;
     initBiometricAuth();
     initQuickPinUI();
@@ -775,12 +812,8 @@ auth.onAuthStateChanged(user => {
     // Check and automatically deduct monthly fixed expenses for new month
     checkAndApplyRecurringExpenses(user.uid);
 
-    // Admin Access Check (Exclusively for hyjano040@gmail.com)
-    const isAdminUser = user.email && ADMIN_EMAILS.includes(user.email.toLowerCase().trim());
-    const adminBtn = document.getElementById('adminPanelBtn');
-    if (adminBtn) {
-      adminBtn.style.display = isAdminUser ? 'inline-flex' : 'none';
-    }
+    // Admin Access Check (Strictly visible only on PC desktop view for hyjano040@gmail.com)
+    updateAdminButtonVisibility();
 
     // Load user transactions and recurring rules
     loadUserTransactions();
@@ -792,8 +825,7 @@ auth.onAuthStateChanged(user => {
     authSection.style.display = 'block';
     appSection.style.display = 'none';
     if (emailVerifyNotice) emailVerifyNotice.style.display = 'none';
-    const adminBtn = document.getElementById('adminPanelBtn');
-    if (adminBtn) adminBtn.style.display = 'none';
+    updateAdminButtonVisibility();
     initBiometricAuth();
   }
 });
@@ -1340,29 +1372,50 @@ function getStoredPinData() {
 }
 
 function initQuickPinUI() {
-  const pinData = getStoredPinData();
   const pinContainer = document.getElementById('quickPinContainer');
   const inlineLink = document.getElementById('pinQuickFillLink');
+  const appPinBtn = document.getElementById('appPinBtn');
+  const pinPills = document.querySelectorAll('.btn-pin-pill');
+
+  // Quick PIN is strictly and exclusively restricted to iPhone Safari browser
+  if (!isIPhoneSafari()) {
+    if (pinContainer) pinContainer.style.display = 'none';
+    if (inlineLink) inlineLink.style.display = 'none';
+    if (appPinBtn) appPinBtn.style.display = 'none';
+    pinPills.forEach(b => b.style.display = 'none');
+    return;
+  }
+
+  const pinData = getStoredPinData();
   const btnTitle = document.getElementById('quickPinBtnTitle');
   const btnSub = document.getElementById('quickPinBtnSub');
   const btnRemove = document.getElementById('btnRemovePin');
 
+  if (appPinBtn) appPinBtn.style.display = 'inline-flex';
+  pinPills.forEach(b => b.style.display = 'inline-flex');
+
+  const isLoginActive = document.getElementById('tabLogin')?.classList.contains('active');
+
   if (pinData && pinData.pin && pinData.email) {
-    if (pinContainer) pinContainer.style.display = 'flex';
+    if (pinContainer) pinContainer.style.display = isLoginActive ? 'flex' : 'none';
     if (inlineLink) inlineLink.style.display = 'inline-flex';
     if (btnTitle) btnTitle.innerText = "Quick PIN Auto-Fill & Login";
     if (btnSub) btnSub.innerText = "Auto-fills " + pinData.email;
     if (btnRemove) btnRemove.style.display = 'inline-flex';
   } else {
-    if (pinContainer) pinContainer.style.display = 'flex';
+    if (pinContainer) pinContainer.style.display = isLoginActive ? 'flex' : 'none';
     if (inlineLink) inlineLink.style.display = 'none';
     if (btnTitle) btnTitle.innerText = "Setup 4-Digit Quick PIN";
-    if (btnSub) btnSub.innerText = "For iPhone Safari & Fast Browser Access";
+    if (btnSub) btnSub.innerText = "Fast 1-Tap Access for iPhone Safari";
     if (btnRemove) btnRemove.style.display = 'none';
   }
 }
 
 function handleQuickPinClick() {
+  if (!isIPhoneSafari()) {
+    showToast("Quick PIN option sirf iPhone Safari browser ke liye available hai.", "info");
+    return;
+  }
   const pinData = getStoredPinData();
   if (pinData && pinData.pin) {
     openPinKeypadModal();
@@ -1372,6 +1425,10 @@ function handleQuickPinClick() {
 }
 
 function openPinKeypadModal() {
+  if (!isIPhoneSafari()) {
+    showToast("Quick PIN option sirf iPhone Safari browser ke liye available hai.", "info");
+    return;
+  }
   const pinData = getStoredPinData();
   if (!pinData || !pinData.pin) {
     openPinSetupModal();
@@ -1463,6 +1520,10 @@ function verifyEnteredPin() {
 }
 
 function openPinSetupModal() {
+  if (!isIPhoneSafari()) {
+    showToast("Quick PIN option sirf iPhone Safari browser ke liye available hai.", "info");
+    return;
+  }
   const modal = document.getElementById('pinSetupModal');
   const emailInput = document.getElementById('setupPinEmail');
   const passInput = document.getElementById('setupPinPass');
@@ -1855,7 +1916,23 @@ function updateDashboardView() {
 }
 
 function filterTransactions() {
+  const input = document.getElementById('searchFilter');
+  const clearBtn = document.getElementById('clearSearchBtn');
+  if (clearBtn) {
+    clearBtn.style.display = (input && input.value.trim().length > 0) ? 'inline-flex' : 'none';
+  }
   updateDashboardView();
+}
+
+function clearSearchFilter() {
+  const input = document.getElementById('searchFilter');
+  if (input) {
+    input.value = '';
+    const clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    filterTransactions();
+    input.focus();
+  }
 }
 
 function renderTransactionsTable(sourceTransactions) {
@@ -2913,15 +2990,18 @@ setInterval(() => {
 }, 30000);
 
 // ==========================================================================
-// MASTER ADMIN DASHBOARD ENGINE (Exclusively for hyjano040@gmail.com)
+// MASTER ADMIN DASHBOARD ENGINE (Exclusively for hyjano040@gmail.com on PC)
 // ==========================================================================
 
-const ADMIN_EMAILS = ['hyjano040@gmail.com'];
 let allSystemTransactions = []; // Cached master records
 let allSystemUsers = [];        // Cached user directory
 let currentAdminTab = 'ledger'; // 'ledger' or 'users'
 
 function openAdminModal() {
+  if (!isPCDesktopView()) {
+    showToast("Admin Panel sirf PC desktop view via website per hi show ho sakta hai.", "error");
+    return;
+  }
   const modal = document.getElementById('adminModal');
   if (!modal) return;
   modal.style.display = 'flex';
@@ -3276,7 +3356,13 @@ async function promptAddNewUserToDirectory() {
 }
 
 function filterAdminTable() {
-  const searchTerm = (document.getElementById('adminSearchInput')?.value || '').toLowerCase().trim();
+  const searchInput = document.getElementById('adminSearchInput');
+  const clearBtn = document.getElementById('clearAdminSearchBtn');
+  if (clearBtn) {
+    clearBtn.style.display = (searchInput && searchInput.value.trim().length > 0) ? 'inline-flex' : 'none';
+  }
+
+  const searchTerm = (searchInput?.value || '').toLowerCase().trim();
   const categoryFilter = document.getElementById('adminCategorySelect')?.value || 'ALL';
 
   const filtered = allSystemTransactions.filter(item => {
@@ -3295,8 +3381,25 @@ function filterAdminTable() {
   renderAdminTable(filtered);
 }
 
+function clearAdminSearchFilter() {
+  const input = document.getElementById('adminSearchInput');
+  if (input) {
+    input.value = '';
+    const clearBtn = document.getElementById('clearAdminSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    filterAdminTable();
+    input.focus();
+  }
+}
+
 function filterAdminUsersTable() {
-  const term = (document.getElementById('adminUserSearchInput')?.value || '').toLowerCase().trim();
+  const searchInput = document.getElementById('adminUserSearchInput');
+  const clearBtn = document.getElementById('clearAdminUserSearchBtn');
+  if (clearBtn) {
+    clearBtn.style.display = (searchInput && searchInput.value.trim().length > 0) ? 'inline-flex' : 'none';
+  }
+
+  const term = (searchInput?.value || '').toLowerCase().trim();
   if (!term) {
     renderAdminUsersTable(allSystemUsers);
     return;
@@ -3309,6 +3412,17 @@ function filterAdminUsersTable() {
   );
 
   renderAdminUsersTable(filtered);
+}
+
+function clearAdminUserSearchFilter() {
+  const input = document.getElementById('adminUserSearchInput');
+  if (input) {
+    input.value = '';
+    const clearBtn = document.getElementById('clearAdminUserSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    filterAdminUsersTable();
+    input.focus();
+  }
 }
 
 function exportAdminDataExcel() {

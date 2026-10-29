@@ -26,8 +26,8 @@
   <link rel="apple-touch-icon" href="logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
   
-  <!-- Custom Modern CSS (v3.8 Ultra Premium & Responsive) -->
-  <link rel="stylesheet" href="style.css?v=3.8">
+  <!-- Custom Modern CSS (v4.0 Ultra Attractive & Responsive) -->
+  <link rel="stylesheet" href="style.css?v=4.5">
   
   <!-- Firebase SDKs (v10 Compat Mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -95,7 +95,7 @@
         <div class="label-with-action">
           <label for="authPassword"><i class="fa-solid fa-lock"></i> Password</label>
           <div class="label-actions-wrap">
-            <a href="javascript:void(0)" class="pin-quick-link" id="pinQuickFillLink" onclick="handleQuickPinClick()" style="display: none;" title="Auto-fill with 4-Digit Quick PIN">
+            <a href="javascript:void(0)" class="pin-quick-link" id="pinQuickFillLink" onclick="handleQuickPinClick()" style="display: none;" title="Auto-fill with 4-Digit Quick PIN (iPhone Safari)">
               <i class="fa-solid fa-key"></i> Auto-fill with PIN
             </a>
             <a href="javascript:void(0)" class="forgot-pwd-link" id="forgotPwdBtn" onclick="handleForgotPassword()">Forgot?</a>
@@ -157,10 +157,10 @@
         </button>
       </div>
 
-      <!-- Safari / iPhone & Mobile Fast 4-Digit PIN Access -->
-      <div id="quickPinContainer" class="quick-pin-box">
+      <!-- Safari / iPhone Fast 4-Digit PIN Access (Exclusively for iPhone Safari) -->
+      <div id="quickPinContainer" class="quick-pin-box" style="display: none;">
         <div class="auth-divider">
-          <span>OR FAST PIN ACCESS</span>
+          <span>OR IPHONE FAST PIN ACCESS</span>
         </div>
         <button type="button" id="btnQuickPinLogin" class="btn-quick-pin" onclick="handleQuickPinClick()">
           <div class="btn-pin-icon-wrap">
@@ -168,7 +168,7 @@
           </div>
           <div class="quick-pin-label">
             <strong id="quickPinBtnTitle">Quick PIN Auto-Fill & Login</strong>
-            <span id="quickPinBtnSub">Fast 1-Tap Access for iPhone Safari & Web</span>
+            <span id="quickPinBtnSub">Fast 1-Tap Access for iPhone Safari</span>
           </div>
           <i class="fa-solid fa-chevron-right pin-arrow"></i>
         </button>
@@ -231,14 +231,14 @@
           </div>
         </div>
 
-        <!-- Quick 4-Digit PIN Access Button (iPhone Safari & Web) -->
-        <button type="button" class="btn-pin-pill" onclick="openPinSetupModal()" title="Manage 4-Digit Quick PIN for iPhone Safari & Web">
+        <!-- Quick 4-Digit PIN Access Button (Exclusively for iPhone Safari) -->
+        <button type="button" id="appPinBtn" class="btn-pin-pill" onclick="openPinSetupModal()" style="display: none;" title="Manage 4-Digit Quick PIN (iPhone Safari)">
           <i class="fa-solid fa-key"></i>
           <span>Quick PIN</span>
         </button>
 
-        <!-- Admin Master Panel Button (Exclusively visible to hyjano040@gmail.com) -->
-        <button id="adminPanelBtn" class="btn-admin-pill" onclick="openAdminModal()" style="display: none;" title="Master Admin Dashboard">
+        <!-- Admin Master Panel Button (Exclusively visible to hyjano040@gmail.com on PC desktop view) -->
+        <button id="adminPanelBtn" class="btn-admin-pill" onclick="openAdminModal()" style="display: none;" title="Master Admin Dashboard (PC Only)">
           <i class="fa-solid fa-crown"></i>
           <span>Admin Panel</span>
         </button>
@@ -629,25 +629,28 @@
     </div>
 
     <!-- Transaction History Section -->
-    <section class="history-section">
-      <div class="history-header">
-        <div class="section-title-wrap">
+    <section class="history-section" style="gap:0;margin:0;padding:0;">
+      <div class="history-header" style="gap:0;margin:0;padding:0;">
+        <div class="section-title-wrap" style="margin:0 !important;padding:0 !important;">
           <div class="section-badge"><i class="fa-solid fa-clock-rotate-left"></i></div>
-          <h3>Transaction History</h3>
+          <h3 style="margin:0 !important;padding:0 !important;">Transaction History</h3>
         </div>
         
         <!-- Live Search and Filter Controls -->
-        <div class="table-filters">
+        <div class="table-filters" style="margin:0 !important;padding:0 !important;">
           <div class="filter-search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="searchFilter" placeholder="Search by title..." oninput="filterTransactions()">
+            <input type="text" id="searchFilter" placeholder="Search by title..." oninput="filterTransactions()" autocomplete="off" spellcheck="false">
+            <button type="button" class="btn-clear-search" id="clearSearchBtn" onclick="clearSearchFilter()" style="display: none;" title="Clear Search">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
           </div>
           <div class="filter-select-box">
             <select id="typeFilter" onchange="filterTransactions()">
-              <option value="ALL">All Types</option>
-              <option value="IN">Income Only</option>
-              <option value="OUT">Expense Only</option>
-              <option value="PERMANENT">Permanent Only</option>
+              <option value="ALL">All Categories</option>
+              <option value="IN">💚 Income Only</option>
+              <option value="OUT">💔 Expense Only</option>
+              <option value="PERMANENT">🔒 Fixed Outflow Only</option>
             </select>
           </div>
           <button type="button" class="btn-export-excel" onclick="exportTransactionsToExcel()" title="Download Modernized Excel Spreadsheet (.xlsx)">
@@ -779,7 +782,10 @@
         <div class="admin-controls-bar">
           <div class="admin-search-wrapper">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="adminSearchInput" placeholder="Filter by User Email, Title, or Category..." oninput="filterAdminTable()">
+            <input type="text" id="adminSearchInput" placeholder="Filter by User Email, Title, or Category..." oninput="filterAdminTable()" autocomplete="off" spellcheck="false">
+            <button type="button" class="btn-clear-search" id="clearAdminSearchBtn" onclick="clearAdminSearchFilter()" style="display: none;" title="Clear Search">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
           </div>
           <div class="admin-type-filter">
             <select id="adminCategorySelect" onchange="filterAdminTable()">
@@ -819,7 +825,10 @@
         <div class="admin-controls-bar">
           <div class="admin-search-wrapper">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="adminUserSearchInput" placeholder="Search by UID, Linked Email, or Name..." oninput="filterAdminUsersTable()">
+            <input type="text" id="adminUserSearchInput" placeholder="Search by UID, Linked Email, or Name..." oninput="filterAdminUsersTable()" autocomplete="off" spellcheck="false">
+            <button type="button" class="btn-clear-search" id="clearAdminUserSearchBtn" onclick="clearAdminUserSearchFilter()" style="display: none;" title="Clear Search">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
           </div>
           <button type="button" class="btn-add-user-modal" onclick="promptAddNewUserToDirectory()" title="Link or Register User from Firebase Console">
             <i class="fa-solid fa-user-plus"></i> + Add / Link User
@@ -949,7 +958,7 @@
           <div class="modal-icon-badge"><i class="fa-solid fa-key"></i></div>
           <div>
             <h3>Setup 4-Digit Quick PIN</h3>
-            <p class="modal-subtitle">Instant 1-tap auto-fill for iPhone Safari & Web</p>
+            <p class="modal-subtitle">Instant 1-tap auto-fill for iPhone Safari</p>
           </div>
         </div>
         <button class="btn-close-modal" onclick="closePinSetupModal()">&times;</button>
@@ -957,7 +966,7 @@
 
       <div class="pin-setup-body">
         <p class="pin-setup-desc">
-          Apne account ke liye koi bhi <strong>4-digit PIN</strong> set karein (jaise 1234). Agli baar jab aap iPhone Safari ya PC par aayenge toh sirf yeh PIN enter karne se aapka email aur password automatically fill ho kar login ho jayega!
+          Apne account ke liye koi bhi <strong>4-digit PIN</strong> set karein (jaise 1234). Agli baar jab aap iPhone Safari par aayenge toh sirf yeh PIN enter karne se aapka email aur password automatically fill ho kar login ho jayega!
         </p>
 
         <div class="form-group">
@@ -995,7 +1004,7 @@
     </div>
   </div>
 
-  <script src="script.js?v=3.8"></script>
+  <script src="script.js?v=4.1"></script>
   
   <!-- PWA Service Worker Registration -->
   <script>
