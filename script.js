@@ -127,21 +127,774 @@ function showToast(message, type = 'info') {
 }
 
 // ==========================================================================
+// Multi-Language Support (English / Roman Urdu)
+// ==========================================================================
+let currentLang = localStorage.getItem('smartflow_lang') || 'en';
+
+const I18N = {
+  en: {
+    langBtn: "English",
+    // Auth Tab & Header
+    loginTab: "Login",
+    signupTab: "Create Account",
+    welcomeTitle: "Welcome Back",
+    createTitle: "Create an Account",
+    authSubtitleLogin: "Login with email & password",
+    authSubtitleSignup: "Fast signup with email verification",
+    nameLabel: "Full Name",
+    namePlaceholder: "Enter your full name",
+    emailLabel: "Email Address",
+    emailPlaceholder: "name@example.com",
+    passwordLabel: "Password",
+    passwordPlaceholder: "Minimum 6 characters",
+    confirmPassLabel: "Confirm Password",
+    confirmPassPlaceholder: "Re-enter your password",
+    loginBtn: "Log In",
+    signupBtn: "Create Account",
+    forgotPass: "Forgot / Reset Password?",
+    authPromptLogin: `Don't have an account? <a href="javascript:void(0)" onclick="switchAuthTab('signup')">Sign up</a>`,
+    authPromptSignup: `Already have an account? <a href="javascript:void(0)" onclick="switchAuthTab('login')">Log in</a>`,
+    googleDivider: "OR CONTINUE WITH",
+    googleBtn: "Continue with Google",
+    googleBtnSignup: "Sign up with Google",
+    quickPinDivider: "OR IPHONE FAST PIN ACCESS",
+    quickPinTitle: "Quick PIN Auto-Fill & Login",
+    quickPinSub: "Fast 1-Tap Access for iPhone Safari",
+    biometricDivider: "OR BIOMETRIC",
+    biometricBtn: "Log In with Fingerprint",
+
+    // Top Header & Meta
+    headerSubtitle: "Real-time Cloud Sync",
+    quickPinNav: "Quick PIN",
+    adminPanelNav: "Admin Panel",
+    logoutBtn: "Logout",
+    badgeVerified: "Verified",
+    badgeUnverified: "Unverified",
+
+    // Email Verify Banner
+    emailVerifyNotice: "Your email is not verified yet. Please verify to secure your account.",
+    resendVerifyBtn: "Resend Verification",
+
+    // Month Selector
+    thisMonthPill: "This Month",
+    allTimePill: "All Time",
+
+    // Summary Cards
+    totalIncomeTitle: "Total Income",
+    incomeHint: "Inflow",
+    totalExpenseTitle: "Total Expense",
+    expenseHint: "Outflow",
+    netBalanceTitle: "Net Balance",
+    balanceAvailable: "Available",
+    balanceDeficit: "Deficit",
+    cashflowRatioTitle: "Cashflow Inflow vs Outflow Ratio",
+    cashflowInflowRetained: "Inflow Retained:",
+    cashflowSpent: "Spent:",
+
+    // Smart Savings Advisor
+    advisorTitle: "Smart Savings Advisor",
+    advisorSubtitleDefault: "Personalized month-end budget & savings guidance",
+    btnAdvisorAdvice: "Savings Advice",
+    btnAdvisorHide: "Hide Advice",
+    qmSavingsRate: "Savings Rate",
+    qmSavingsHint: "Target: 20%+",
+    qmBurnRate: "Expense Burn Rate",
+    qmBurnHint: "of Income spent",
+    qmDailyCap: "Suggested Daily Cap",
+    qmDailyCapHint: "to maintain savings",
+    qmFinancialHealth: "Financial Health",
+    qmEvaluating: "Evaluating",
+
+    // Daily Cap Guide
+    dailyCapGuideTitle: "Daily Cap & Expense Pace Guide",
+    dailyCapGuideDesc: "Track your daily expenses against your target spending cap, and see actionable steps to keep your monthly budget balanced.",
+    baseDailyCapLabel: "Base Daily Cap",
+    baseDailyCapSub: "Daily Target Limit",
+    todaySpendingLabel: "Today's Spending",
+    todaySpendingSub: "Today's Total Spend",
+    dailyCutTargetLabel: "Daily Cut Target",
+    dailyCutTargetSub: "Daily Reduction Needed",
+    adjustedDailyCapLabel: "Adjusted Daily Cap",
+    adjustedDailyCapSub: "For Remaining Days",
+
+    // 50/30/20 Budget Guide
+    budgetGuideTitle: "The 50 / 30 / 20 Budget Guide",
+    budgetGuideDescPrefix: "Based on your active income (",
+    budgetGuideDescSuffix: "), here is how your money should ideally be distributed:",
+    budgetNeedsLabel: "🏠 Needs (50% max)",
+    budgetNeedsSub: "Essentials, food, rent, utility bills",
+    budgetWantsLabel: "🍿 Wants / Lifestyle (30% max)",
+    budgetWantsSub: "Dining out, shopping, discretionary",
+    budgetSavingsLabel: "💎 Savings & Buffer (20% min)",
+    budgetSavingsSub: "Emergency fund & future investments",
+
+    // Actionable Tips
+    actionableTipsTitle: "Actionable Steps to Save Money",
+
+    // Add Transaction Form
+    addTxTitle: "Add New Transaction",
+    txTitleLabel: "Title / Source",
+    txTitlePlaceholder: "e.g. Monthly Salary, House Rent, Utilities",
+    amountLabel: "Amount (Rs.)",
+    amountPlaceholder: "Enter amount (e.g. 5000)",
+    categoryLabel: "Category",
+    catIncome: "Income",
+    catExpense: "Expense",
+    catFixed: "Fixed",
+    optIncome: "💚 Income (Money IN)",
+    optExpense: "💔 Expense (Money OUT - Normal)",
+    optPermanent: "🔒 Permanent / Fixed Expense (Auto Monthly)",
+    txDateLabel: "Transaction Date",
+    todayPill: "Today",
+    permanentNotice: "<strong>Automatic Monthly Outflow:</strong> Once saved, this recurring expense will automatically be logged at the start of every new month.",
+    recordTxBtn: "Record Transaction",
+    fixedRulesBtn: "Fixed Outflow Rules",
+
+    // Recurring Modal
+    recurringModalTitle: "Monthly Fixed Expenses",
+    recurringModalSub: "Auto-deducted at the start of every month",
+
+    // Transaction History
+    historyTitle: "Transaction History",
+    searchPlaceholder: "Search by title...",
+    filterAll: "All Categories",
+    filterIncome: "💚 Income Only",
+    filterExpense: "💔 Expense Only",
+    filterFixed: "🔒 Fixed Outflow Only",
+    exportExcelBtn: "Export Excel",
+
+    // Table Headers
+    thDateTime: "Date & Time",
+    thTitle: "Title / Description",
+    thType: "Type",
+    thAmount: "Amount",
+    thAction: "Action",
+
+    // Empty State
+    emptyStateTitle: "No Transactions Found",
+    emptyStateDesc: "Start recording your financial flow using the form above.",
+
+    // Email Verify Modal
+    verifyModalTitle: "Email Verification Required",
+    verifyModalDesc: "Your account has been created. To access your dashboard, <strong>please verify your email address first</strong>.",
+    verifyInstructInbox: "Open your email inbox (and <strong>Spam / Junk folder</strong>), then click the <strong>Verification Link</strong> sent to you.",
+    verifyInstructProceed: "After verifying, tap the button below or log in to proceed.",
+    verifyProceedBtn: "I've Verified My Email (Log In)",
+    verifyResendBtn: "Resend Verification Email",
+    verifyBackBtn: "Back to Login Screen",
+
+    // Password Reset Modal
+    resetModalTitle: "Reset Your Password",
+    resetModalDesc: "Enter your registered email address below. We'll send you an <strong>official password reset link</strong> to reset your password.",
+    resetEmailLabel: "Registered Email Address",
+    resetEmailPlaceholder: "name@example.com",
+    resetSubmitBtn: "Send Password Reset Link",
+    resetCancelBtn: "Cancel & Back to Login",
+
+    // Quick PIN Modals
+    pinKeypadTitle: "Enter 4-Digit PIN",
+    pinKeypadSub: "Auto-fills your login and unlocks SmartFlow",
+    pinKeypadCancel: "Cancel",
+    pinKeypadChange: "Change / Reset PIN",
+    pinSetupTitle: "Setup 4-Digit Quick PIN",
+    pinSetupSub: "Instant 1-tap auto-fill for iPhone Safari",
+    pinSetupDesc: "Set a secure <strong>4-digit PIN</strong> (e.g. 1234). When using iPhone Safari, you can quickly log in simply by entering this PIN without typing your password each time!",
+    pinSetupEmail: "Account Email",
+    pinSetupPass: "Account Password",
+    pinSetupCode: "Choose 4-Digit PIN",
+    pinSaveBtn: "Save Quick PIN",
+    pinRemoveBtn: "Remove PIN"
+  },
+  ur: {
+    langBtn: "Roman Urdu",
+    // Auth Tab & Header
+    loginTab: "Log In",
+    signupTab: "Account Banayein",
+    welcomeTitle: "Khush Aamdeed",
+    createTitle: "Naya Account Banayein",
+    authSubtitleLogin: "Email aur password se login karein",
+    authSubtitleSignup: "Naya account banayein aur email verify karein",
+    nameLabel: "Pura Naam",
+    namePlaceholder: "Apna pura naam likhein",
+    emailLabel: "Email Address",
+    emailPlaceholder: "name@example.com",
+    passwordLabel: "Password",
+    passwordPlaceholder: "Kam az kam 6 characters",
+    confirmPassLabel: "Password Confirm Karein",
+    confirmPassPlaceholder: "Password dobara darj karein",
+    loginBtn: "Log In",
+    signupBtn: "Account Banayein",
+    forgotPass: "Password Bhool Gaye? Reset Karein",
+    authPromptLogin: `Account nahi hai? <a href="javascript:void(0)" onclick="switchAuthTab('signup')">Sign up karein</a>`,
+    authPromptSignup: `Pehle se account hai? <a href="javascript:void(0)" onclick="switchAuthTab('login')">Log in karein</a>`,
+    googleDivider: "YA GOOGLE SE LOGIN KAREIN",
+    googleBtn: "Google Se Continue Karein",
+    googleBtnSignup: "Google Se Sign Up Karein",
+    quickPinDivider: "YA IPHONE FAST PIN LOGIN",
+    quickPinTitle: "Quick PIN Auto-Fill & Login",
+    quickPinSub: "iPhone Safari Ke Liye 1-Tap Access",
+    biometricDivider: "YA BIOMETRIC",
+    biometricBtn: "Fingerprint Se Log In Karein",
+
+    // Top Header & Meta
+    headerSubtitle: "Real-time Cloud Sync",
+    quickPinNav: "Quick PIN",
+    adminPanelNav: "Admin Panel",
+    logoutBtn: "Log Out",
+    badgeVerified: "Verified",
+    badgeUnverified: "Unverified",
+
+    // Email Verify Banner
+    emailVerifyNotice: "Aapka email verify nahi hua. Apne account ki hifazat ke liye verify karein.",
+    resendVerifyBtn: "Verification Dobara Bhejein",
+
+    // Month Selector
+    thisMonthPill: "Yeh Mahina",
+    allTimePill: "Tamam Records",
+
+    // Summary Cards
+    totalIncomeTitle: "Kul Aamadni",
+    incomeHint: "Aamadni",
+    totalExpenseTitle: "Kul Kharcha",
+    expenseHint: "Kharcha",
+    netBalanceTitle: "Baqaya Balance",
+    balanceAvailable: "Dastyab",
+    balanceDeficit: "Nuqsan",
+    cashflowRatioTitle: "Aamadni Aur Kharcha Ka Ratio",
+    cashflowInflowRetained: "Bachat Ratio:",
+    cashflowSpent: "Kharcha Ratio:",
+
+    // Smart Savings Advisor
+    advisorTitle: "Smart Savings Advisor",
+    advisorSubtitleDefault: "Mahine ke budget aur bachat ki guidance",
+    btnAdvisorAdvice: "Bachat Mashwara",
+    btnAdvisorHide: "Chupayein",
+    qmSavingsRate: "Bachat Sharah",
+    qmSavingsHint: "Target: 20%+",
+    qmBurnRate: "Kharcha Burn Rate",
+    qmBurnHint: "Aamadni ka kharch",
+    qmDailyCap: "Tajweez Karda Daily Cap",
+    qmDailyCapHint: "Bachat barqarar rakhne ke liye",
+    qmFinancialHealth: "Maliyati Sehat",
+    qmEvaluating: "Check Ho Raha Hai",
+
+    // Daily Cap Guide
+    dailyCapGuideTitle: "Daily Cap & Expense Pace Guide (Rozana Kharcha Control)",
+    dailyCapGuideDesc: "Rozana kharchon ko daily cap ke mutabiq track karein aur janein ke budget balance aur cap pura karne ke liye kitna kharcha kam karna hoga.",
+    baseDailyCapLabel: "Bunyadi Daily Cap",
+    baseDailyCapSub: "Rozana Target Limit",
+    todaySpendingLabel: "Aaj Ka Kharcha",
+    todaySpendingSub: "Aaj Ka Kul Kharcha",
+    dailyCutTargetLabel: "Rozana Kami Target",
+    dailyCutTargetSub: "Rozana Kami Ki Zaroorat",
+    adjustedDailyCapLabel: "Naya Rozana Limit",
+    adjustedDailyCapSub: "Baqi Dino Ke Liye",
+
+    // 50/30/20 Budget Guide
+    budgetGuideTitle: "50 / 30 / 20 Budget Guide",
+    budgetGuideDescPrefix: "Aapki active aamadni (",
+    budgetGuideDescSuffix: ") ke mutabiq, aapke paison ki ideal taqseem yeh honi chahiye:",
+    budgetNeedsLabel: "🏠 Zarooriyat (50% max)",
+    budgetNeedsSub: "Zarooriyat, khana, kiraya, bijli/gas bills",
+    budgetWantsLabel: "🍿 Khwahishat / Lifestyle (30% max)",
+    budgetWantsSub: "Bahar khana, shopping, shauq",
+    budgetSavingsLabel: "💎 Bachat & Emergency Fund (20% min)",
+    budgetSavingsSub: "Emergency fund aur future sarmayakari",
+
+    // Actionable Tips
+    actionableTipsTitle: "Paisa Bachane Ke Mufeed Mashware",
+
+    // Add Transaction Form
+    addTxTitle: "Naya Transaction Add Karein",
+    txTitleLabel: "Title / Zariya",
+    txTitlePlaceholder: "Jaise Tankhwah, Ghar Ka Kiraya, Bills",
+    amountLabel: "Raqam (Rs.)",
+    amountPlaceholder: "Raqam darj karein (e.g. 5000)",
+    categoryLabel: "Category",
+    catIncome: "Aamadni",
+    catExpense: "Kharcha",
+    catFixed: "Monthly Fixed",
+    optIncome: "💚 Aamadni (Paisa Aya)",
+    optExpense: "💔 Kharcha (Paisa Gaya)",
+    optPermanent: "🔒 Monthly Fixed (Har Mahine Auto Cut)",
+    txDateLabel: "Transaction Ki Tareekh",
+    todayPill: "Aaj",
+    permanentNotice: "<strong>Auto Monthly Outflow:</strong> Save karne ke baad yeh kharcha har mahine ke shuru me khud ba khud cut ho jayega.",
+    recordTxBtn: "Transaction Record Karein",
+    fixedRulesBtn: "Fixed Monthly Kharchay",
+
+    // Recurring Modal
+    recurringModalTitle: "Monthly Fixed Kharchay",
+    recurringModalSub: "Har mahine ke aaghaz par auto record hotay hain",
+
+    // Transaction History
+    historyTitle: "Transactions Ka Record",
+    searchPlaceholder: "Title se search karein...",
+    filterAll: "Tamam Categories",
+    filterIncome: "💚 Sirf Aamadni",
+    filterExpense: "💔 Sirf Kharchay",
+    filterFixed: "🔒 Sirf Fixed Kharchay",
+    exportExcelBtn: "Excel Export Karein",
+
+    // Table Headers
+    thDateTime: "Tareekh & Waqt",
+    thTitle: "Title / Tafseel",
+    thType: "Qisam",
+    thAmount: "Raqam",
+    thAction: "Action",
+
+    // Empty State
+    emptyStateTitle: "Koi Transaction Nahi Mili",
+    emptyStateDesc: "Upar diye gaye form se apne kharchay aur aamadni record karein.",
+
+    // Email Verify Modal
+    verifyModalTitle: "Email Verification Zaroori Hai",
+    verifyModalDesc: "Aapka account ban chuka hai. Dashboard access karne ke liye <strong>pehle apna email verify karein</strong>.",
+    verifyInstructInbox: "Apna email inbox (aur <strong>Spam / Junk folder</strong>) check karein, aur wahan aane wale <strong>Verification Link</strong> par click karein.",
+    verifyInstructProceed: "Verify karne ke baad, niche diye gaye button par click karein ya login karein.",
+    verifyProceedBtn: "Maine Email Verify Kar Liya (Log In)",
+    verifyResendBtn: "Verification Email Dobara Bhejein",
+    verifyBackBtn: "Wapas Login Screen Par Jayein",
+
+    // Password Reset Modal
+    resetModalTitle: "Apna Password Reset Karein",
+    resetModalDesc: "Apna registered email address enter karein. Hum aapko <strong>password reset link</strong> bhejenge.",
+    resetEmailLabel: "Registered Email Address",
+    resetEmailPlaceholder: "name@example.com",
+    resetSubmitBtn: "Password Reset Link Bhejein",
+    resetCancelBtn: "Cancel & Wapas Login",
+
+    // Quick PIN Modals
+    pinKeypadTitle: "4-Digit PIN Enter Karein",
+    pinKeypadSub: "Auto-fill karke SmartFlow unlock karega",
+    pinKeypadCancel: "Cancel",
+    pinKeypadChange: "PIN Tabdeel / Reset Karein",
+    pinSetupTitle: "4-Digit Quick PIN Set Karein",
+    pinSetupSub: "iPhone Safari ke liye 1-tap auto login",
+    pinSetupDesc: "Apna mehfooz <strong>4-digit PIN</strong> set karein (jaise 1234). iPhone Safari par password type kiye baghair sirf yeh PIN laga kar foran login ho jayein!",
+    pinSetupEmail: "Account Email",
+    pinSetupPass: "Account Password",
+    pinSetupCode: "4-Digit PIN Chunein",
+    pinSaveBtn: "Quick PIN Save Karein",
+    pinRemoveBtn: "PIN Khatam Karein"
+  }
+};
+
+function toggleLanguage() {
+  currentLang = currentLang === 'en' ? 'ur' : 'en';
+  localStorage.setItem('smartflow_lang', currentLang);
+  applyLanguage(currentLang);
+  showToast(currentLang === 'ur' ? "🌐 Language: Roman Urdu set ho gayi hai!" : "🌐 Language switched to English!", "info");
+}
+
+function applyLanguage(lang) {
+  const dict = I18N[lang] || I18N.en;
+
+  // Language button text
+  const langToggleText = document.getElementById('langToggleText');
+  if (langToggleText) langToggleText.innerText = dict.langBtn;
+
+  // Auth Screen
+  const tabLogin = document.getElementById('tabLogin');
+  if (tabLogin) tabLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> ${dict.loginTab}`;
+
+  const tabSignup = document.getElementById('tabSignup');
+  if (tabSignup) tabSignup.innerHTML = `<i class="fa-solid fa-user-plus"></i> ${dict.signupTab}`;
+
+  const authTitle = document.getElementById('authTitle');
+  if (authTitle) authTitle.innerText = currentAuthMode === 'login' ? dict.welcomeTitle : dict.createTitle;
+
+  const authSwitchPrompt = document.getElementById('authSwitchPrompt');
+  if (authSwitchPrompt) authSwitchPrompt.innerHTML = currentAuthMode === 'login' ? dict.authPromptLogin : dict.authPromptSignup;
+
+  const labelAuthName = document.getElementById('labelAuthName');
+  if (labelAuthName) labelAuthName.innerHTML = `<i class="fa-solid fa-user"></i> ${dict.nameLabel}`;
+
+  const authName = document.getElementById('authName');
+  if (authName) authName.placeholder = dict.namePlaceholder;
+
+  const labelAuthEmail = document.getElementById('labelAuthEmail');
+  if (labelAuthEmail) labelAuthEmail.innerHTML = `<i class="fa-regular fa-envelope"></i> ${dict.emailLabel}`;
+
+  const authEmail = document.getElementById('authEmail');
+  if (authEmail) authEmail.placeholder = dict.emailPlaceholder;
+
+  const labelAuthPassword = document.getElementById('labelAuthPassword');
+  if (labelAuthPassword) labelAuthPassword.innerHTML = `<i class="fa-solid fa-lock"></i> ${dict.passwordLabel}`;
+
+  const authPassword = document.getElementById('authPassword');
+  if (authPassword) authPassword.placeholder = dict.passwordPlaceholder;
+
+  const labelAuthConfirmPassword = document.getElementById('labelAuthConfirmPassword');
+  if (labelAuthConfirmPassword) labelAuthConfirmPassword.innerHTML = `<i class="fa-solid fa-lock-open"></i> ${dict.confirmPassLabel}`;
+
+  const authConfirmPassword = document.getElementById('authConfirmPassword');
+  if (authConfirmPassword) authConfirmPassword.placeholder = dict.confirmPassPlaceholder;
+
+  const loginBtn = document.getElementById('loginBtn');
+  if (loginBtn) loginBtn.innerHTML = `<span>${dict.loginBtn}</span> <i class="fa-solid fa-arrow-right"></i>`;
+
+  const signupBtn = document.getElementById('signupBtn');
+  if (signupBtn) signupBtn.innerHTML = `<span>${dict.signupBtn}</span> <i class="fa-solid fa-user-check"></i>`;
+
+  const resetPwdBtn = document.querySelector('.btn-reset-pwd-text');
+  if (resetPwdBtn) resetPwdBtn.innerHTML = `<i class="fa-solid fa-key"></i> ${dict.forgotPass}`;
+
+  const googleDivider = document.querySelector('.google-auth-box .auth-divider span');
+  if (googleDivider) googleDivider.innerText = dict.googleDivider;
+
+  const googleBtnLabel = document.getElementById('googleBtnLabel');
+  if (googleBtnLabel) googleBtnLabel.innerText = currentAuthMode === 'login' ? dict.googleBtn : dict.googleBtnSignup;
+
+  const quickPinDivider = document.querySelector('#quickPinContainer .auth-divider span');
+  if (quickPinDivider) quickPinDivider.innerText = dict.quickPinDivider;
+
+  const quickPinBtnTitle = document.getElementById('quickPinBtnTitle');
+  if (quickPinBtnTitle) quickPinBtnTitle.innerText = dict.quickPinTitle;
+
+  const quickPinBtnSub = document.getElementById('quickPinBtnSub');
+  if (quickPinBtnSub) quickPinBtnSub.innerText = dict.quickPinSub;
+
+  const biometricDivider = document.querySelector('#biometricLoginContainer .auth-divider span');
+  if (biometricDivider) biometricDivider.innerText = dict.biometricDivider;
+
+  const biometricLoginBtn = document.getElementById('biometricLoginBtn');
+  if (biometricLoginBtn) biometricLoginBtn.innerHTML = `<i class="fa-solid fa-fingerprint"></i> <span>${dict.biometricBtn}</span>`;
+
+  // Main Header & Top Controls
+  const headerSubtitle = document.querySelector('.header-subtitle');
+  if (headerSubtitle) headerSubtitle.innerText = dict.headerSubtitle;
+
+  const appPinBtn = document.getElementById('appPinBtn');
+  if (appPinBtn) {
+    const span = appPinBtn.querySelector('span');
+    if (span) span.innerText = dict.quickPinNav;
+  }
+
+  const adminPanelBtn = document.getElementById('adminPanelBtn');
+  if (adminPanelBtn) {
+    const span = adminPanelBtn.querySelector('span');
+    if (span) span.innerText = dict.adminPanelNav;
+  }
+
+  const logoutBtn = document.querySelector('.btn-logout');
+  if (logoutBtn) {
+    const span = logoutBtn.querySelector('span');
+    if (span) span.innerText = dict.logoutBtn;
+  }
+
+  // Email Verification Banner
+  const emailVerifyNotice = document.getElementById('emailVerifyNotice');
+  if (emailVerifyNotice) {
+    const span = emailVerifyNotice.querySelector('.banner-content span');
+    if (span) span.innerText = dict.emailVerifyNotice;
+    const btn = emailVerifyNotice.querySelector('.btn-verify-action');
+    if (btn) btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${dict.resendVerifyBtn}`;
+  }
+
+  // Month Selector Quick Pills
+  const btnThisMonth = document.getElementById('btnThisMonth');
+  if (btnThisMonth) btnThisMonth.innerHTML = `<i class="fa-solid fa-calendar-day"></i> ${dict.thisMonthPill}`;
+
+  const btnAllMonths = document.getElementById('btnAllMonths');
+  if (btnAllMonths) btnAllMonths.innerHTML = `<i class="fa-solid fa-layer-group"></i> ${dict.allTimePill}`;
+
+  // Live Balance Summary Cards
+  const incomeCardTitle = document.querySelector('.card.income-bg .card-content p');
+  if (incomeCardTitle) incomeCardTitle.innerText = dict.totalIncomeTitle;
+  const incomeCardHint = document.querySelector('.card.income-bg .card-hint');
+  if (incomeCardHint) incomeCardHint.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${dict.incomeHint}`;
+
+  const expenseCardTitle = document.querySelector('.card.expense-bg .card-content p');
+  if (expenseCardTitle) expenseCardTitle.innerText = dict.totalExpenseTitle;
+  const expenseCardHint = document.querySelector('.card.expense-bg .card-hint');
+  if (expenseCardHint) expenseCardHint.innerHTML = `<i class="fa-solid fa-receipt"></i> ${dict.expenseHint}`;
+
+  const balanceCardTitle = document.querySelector('.card.balance-bg .card-content p');
+  if (balanceCardTitle) balanceCardTitle.innerText = dict.netBalanceTitle;
+
+  const cashflowTitle = document.querySelector('.cashflow-title span');
+  if (cashflowTitle) cashflowTitle.innerText = dict.cashflowRatioTitle;
+
+  const cashflowStatIn = document.querySelector('.cashflow-stat-in');
+  if (cashflowStatIn) {
+    const curVal = document.getElementById('cashflowInPct')?.innerText || '0%';
+    cashflowStatIn.innerHTML = `<i class="fa-solid fa-circle"></i> ${dict.cashflowInflowRetained} <strong id="cashflowInPct">${curVal}</strong>`;
+  }
+
+  const cashflowStatOut = document.querySelector('.cashflow-stat-out');
+  if (cashflowStatOut) {
+    const curVal = document.getElementById('cashflowOutPct')?.innerText || '0%';
+    cashflowStatOut.innerHTML = `<i class="fa-solid fa-circle"></i> ${dict.cashflowSpent} <strong id="cashflowOutPct">${curVal}</strong>`;
+  }
+
+  // Smart Savings Advisor
+  const advisorHeaderTitle = document.querySelector('.advisor-badge-row h3');
+  if (advisorHeaderTitle) advisorHeaderTitle.innerText = dict.advisorTitle;
+
+  const btnToggleAdvisor = document.getElementById('btnToggleAdvisor');
+  if (btnToggleAdvisor) {
+    const span = btnToggleAdvisor.querySelector('span');
+    if (span) span.innerText = isAdvisorExpanded ? dict.btnAdvisorHide : dict.btnAdvisorAdvice;
+  }
+
+  const qmLabels = document.querySelectorAll('.quick-metric-item .qm-label');
+  if (qmLabels && qmLabels.length >= 4) {
+    qmLabels[0].innerHTML = `<i class="fa-solid fa-piggy-bank"></i> ${dict.qmSavingsRate}`;
+    qmLabels[1].innerHTML = `<i class="fa-solid fa-fire-flame-curved"></i> ${dict.qmBurnRate}`;
+    qmLabels[2].innerHTML = `<i class="fa-solid fa-calendar-day"></i> ${dict.qmDailyCap}`;
+    qmLabels[3].innerHTML = `<i class="fa-solid fa-heart-pulse"></i> ${dict.qmFinancialHealth}`;
+  }
+  const qmSavingsHint = document.getElementById('qmSavingsHint');
+  if (qmSavingsHint) qmSavingsHint.innerText = dict.qmSavingsHint;
+  const qmBurnHint = document.getElementById('qmBurnHint');
+  if (qmBurnHint) qmBurnHint.innerText = dict.qmBurnHint;
+
+  // Daily Cap Box
+  const dailyCapTitle = document.querySelector('.advisor-box.daily-cap-box .box-head h4') || document.querySelector('.advisor-box.daily-cap-guide h4');
+  if (dailyCapTitle) dailyCapTitle.innerText = dict.dailyCapGuideTitle;
+
+  const dailyCapDesc = document.getElementById('dailyCapDesc');
+  if (dailyCapDesc) dailyCapDesc.innerText = dict.dailyCapGuideDesc;
+
+  const capStatLabels = document.querySelectorAll('.cap-stat-card .cap-stat-label');
+  if (capStatLabels && capStatLabels.length >= 4) {
+    capStatLabels[0].innerHTML = `<i class="fa-solid fa-calendar-day"></i> ${dict.baseDailyCapLabel}`;
+    capStatLabels[1].innerHTML = `<i class="fa-solid fa-receipt"></i> ${dict.todaySpendingLabel}`;
+    capStatLabels[2].innerHTML = `<i class="fa-solid fa-scissors"></i> ${dict.dailyCutTargetLabel}`;
+    capStatLabels[3].innerHTML = `<i class="fa-solid fa-flag-checkered"></i> ${dict.adjustedDailyCapLabel}`;
+  }
+
+  const capStatBaseSub = document.getElementById('capStatBaseSub');
+  if (capStatBaseSub) capStatBaseSub.innerText = dict.baseDailyCapSub;
+
+  // 50/30/20 Budget Guide
+  const budgetRuleTitle = document.querySelector('.advisor-box.budget-rule-box .box-head h4');
+  if (budgetRuleTitle) budgetRuleTitle.innerText = dict.budgetGuideTitle;
+
+  const budgetRuleDesc = document.querySelector('.advisor-box.budget-rule-box .box-desc');
+  if (budgetRuleDesc) {
+    const curInc = document.getElementById('guideIncomeDisplay')?.innerText || 'Rs. 0';
+    budgetRuleDesc.innerHTML = `${dict.budgetGuideDescPrefix}<span id="guideIncomeDisplay">${curInc}</span>${dict.budgetGuideDescSuffix}`;
+  }
+
+  const bBarLabels = document.querySelectorAll('.budget-bars .b-bar-item .b-bar-label span');
+  const bBarSubs = document.querySelectorAll('.budget-bars .b-bar-item .b-bar-sub');
+  if (bBarLabels && bBarLabels.length >= 3) {
+    bBarLabels[0].innerText = dict.budgetNeedsLabel;
+    bBarLabels[1].innerText = dict.budgetWantsLabel;
+    bBarLabels[2].innerText = dict.budgetSavingsLabel;
+  }
+  if (bBarSubs && bBarSubs.length >= 3) {
+    bBarSubs[0].innerText = dict.budgetNeedsSub;
+    bBarSubs[1].innerText = dict.budgetWantsSub;
+    bBarSubs[2].innerText = dict.budgetSavingsSub;
+  }
+
+  // Actionable Tips Box Header
+  const actionableTipsTitle = document.querySelector('.advisor-box.actionable-tips-box .box-head h4');
+  if (actionableTipsTitle) actionableTipsTitle.innerText = dict.actionableTipsTitle;
+
+  // Add Transaction Form
+  const formTitle = document.querySelector('.form-container .section-title-wrap h3');
+  if (formTitle) formTitle.innerText = dict.addTxTitle;
+
+  const labelTitle = document.querySelector('label[for="title"]');
+  if (labelTitle) labelTitle.innerHTML = `<i class="fa-solid fa-pen-fancy"></i> ${dict.txTitleLabel}`;
+
+  const titleInput = document.getElementById('title');
+  if (titleInput) titleInput.placeholder = dict.txTitlePlaceholder;
+
+  const labelAmount = document.querySelector('label[for="amount"]');
+  if (labelAmount) labelAmount.innerHTML = `<i class="fa-solid fa-money-bill-wave"></i> ${dict.amountLabel}`;
+
+  const amountInput = document.getElementById('amount');
+  if (amountInput) amountInput.placeholder = dict.amountPlaceholder;
+
+  const labelType = document.querySelector('label[for="type"]');
+  if (labelType) labelType.innerHTML = `<i class="fa-solid fa-tags"></i> ${dict.categoryLabel}`;
+
+  const catChips = document.querySelectorAll('.category-quick-chips .cat-chip');
+  if (catChips && catChips.length >= 3) {
+    catChips[0].innerHTML = `<i class="fa-solid fa-arrow-down-left"></i> ${dict.catIncome}`;
+    catChips[1].innerHTML = `<i class="fa-solid fa-arrow-up-right"></i> ${dict.catExpense}`;
+    catChips[2].innerHTML = `<i class="fa-solid fa-repeat"></i> ${dict.catFixed}`;
+  }
+
+  const selectType = document.getElementById('type');
+  if (selectType && selectType.options && selectType.options.length >= 3) {
+    selectType.options[0].text = dict.optIncome;
+    selectType.options[1].text = dict.optExpense;
+    selectType.options[2].text = dict.optPermanent;
+  }
+
+  const labelDate = document.querySelector('.label-with-action label');
+  if (labelDate) labelDate.innerHTML = `<i class="fa-regular fa-calendar-days"></i> ${dict.txDateLabel}`;
+
+  const btnTodayPill = document.querySelector('.btn-today-pill');
+  if (btnTodayPill) btnTodayPill.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> ${dict.todayPill}`;
+
+  const permanentNotice = document.getElementById('permanentNotice');
+  if (permanentNotice) {
+    const span = permanentNotice.querySelector('span');
+    if (span) span.innerHTML = dict.permanentNotice;
+  }
+
+  const addTxBtn = document.getElementById('addTransactionBtn');
+  if (addTxBtn) addTxBtn.innerHTML = `<i class="fa-solid fa-circle-plus"></i> <span>${dict.recordTxBtn}</span>`;
+
+  const btnFixedRules = document.querySelector('.form-actions .btn-secondary-sm');
+  if (btnFixedRules) {
+    const curCount = document.getElementById('recurringCount')?.innerText || '0';
+    btnFixedRules.innerHTML = `<i class="fa-solid fa-repeat"></i> <span>${dict.fixedRulesBtn} (<strong id="recurringCount">${curCount}</strong>)</span>`;
+  }
+
+  // Fixed Recurring Modal
+  const recurringModalTitle = document.querySelector('#recurringModal .modal-title h3');
+  if (recurringModalTitle) recurringModalTitle.innerText = dict.recurringModalTitle;
+
+  const recurringModalSub = document.querySelector('#recurringModal .modal-subtitle');
+  if (recurringModalSub) recurringModalSub.innerText = dict.recurringModalSub;
+
+  // History Section
+  const historyTitle = document.querySelector('.history-header .section-title-wrap h3');
+  if (historyTitle) historyTitle.innerText = dict.historyTitle;
+
+  const searchFilter = document.getElementById('searchFilter');
+  if (searchFilter) searchFilter.placeholder = dict.searchPlaceholder;
+
+  const typeFilter = document.getElementById('typeFilter');
+  if (typeFilter && typeFilter.options && typeFilter.options.length >= 4) {
+    typeFilter.options[0].text = dict.filterAll;
+    typeFilter.options[1].text = dict.filterIncome;
+    typeFilter.options[2].text = dict.filterExpense;
+    typeFilter.options[3].text = dict.filterFixed;
+  }
+
+  const btnExportExcel = document.querySelector('.btn-export-excel span');
+  if (btnExportExcel) btnExportExcel.innerText = dict.exportExcelBtn;
+
+  // Table Column Headers
+  const tableThs = document.querySelectorAll('#transactionsMainTable thead th');
+  if (tableThs && tableThs.length >= 5) {
+    const sortWrap = tableThs[0].querySelector('.th-sort-wrap');
+    if (sortWrap) {
+      sortWrap.innerHTML = `<span>${dict.thDateTime}</span> <i id="sortDirectionIcon" class="fa-solid fa-arrow-down-wide-short"></i>`;
+    }
+    tableThs[1].innerText = dict.thTitle;
+    tableThs[2].innerText = dict.thType;
+    tableThs[3].innerText = dict.thAmount;
+    tableThs[4].innerText = dict.thAction;
+  }
+
+  // Empty State
+  const emptyStateH4 = document.querySelector('#emptyState h4');
+  if (emptyStateH4) emptyStateH4.innerText = dict.emptyStateTitle;
+
+  // Email Verify Modal
+  const verifyModalTitle = document.querySelector('#emailVerifyRequiredModal h3');
+  if (verifyModalTitle) verifyModalTitle.innerText = dict.verifyModalTitle;
+
+  const verifyModalDesc = document.querySelector('#emailVerifyRequiredModal .verify-desc');
+  if (verifyModalDesc) verifyModalDesc.innerHTML = dict.verifyModalDesc;
+
+  const verifyInstructs = document.querySelectorAll('#emailVerifyRequiredModal .verify-instructions-box p');
+  if (verifyInstructs && verifyInstructs.length >= 2) {
+    verifyInstructs[0].innerHTML = `<i class="fa-solid fa-circle-info"></i> ${dict.verifyInstructInbox}`;
+    verifyInstructs[1].innerHTML = `<i class="fa-solid fa-check"></i> ${dict.verifyInstructProceed}`;
+  }
+
+  const verifyProceedBtn = document.querySelector('#emailVerifyRequiredModal .verify-actions .btn-primary span');
+  if (verifyProceedBtn) verifyProceedBtn.innerText = dict.verifyProceedBtn;
+
+  const verifyResendBtn = document.querySelector('#emailVerifyRequiredModal .verify-actions .btn-secondary span');
+  if (verifyResendBtn) verifyResendBtn.innerText = dict.verifyResendBtn;
+
+  const verifyBackBtn = document.querySelector('#emailVerifyRequiredModal .btn-close-verify span');
+  if (verifyBackBtn) verifyBackBtn.innerText = dict.verifyBackBtn;
+
+  // Password Reset Modal
+  const resetModalTitle = document.querySelector('#passwordResetModal h3');
+  if (resetModalTitle) resetModalTitle.innerText = dict.resetModalTitle;
+
+  const resetModalDesc = document.querySelector('#passwordResetModal .verify-desc');
+  if (resetModalDesc) resetModalDesc.innerHTML = dict.resetModalDesc;
+
+  const resetEmailLabel = document.querySelector('#passwordResetModal label[for="resetEmailInput"]');
+  if (resetEmailLabel) resetEmailLabel.innerHTML = `<i class="fa-solid fa-envelope"></i> ${dict.resetEmailLabel}`;
+
+  const resetEmailInput = document.getElementById('resetEmailInput');
+  if (resetEmailInput) resetEmailInput.placeholder = dict.resetEmailPlaceholder;
+
+  const resetSubmitBtn = document.querySelector('#btnSubmitReset span');
+  if (resetSubmitBtn) resetSubmitBtn.innerText = dict.resetSubmitBtn;
+
+  const resetCancelBtn = document.querySelector('#passwordResetModal .btn-close-verify span');
+  if (resetCancelBtn) resetCancelBtn.innerText = dict.resetCancelBtn;
+
+  // Quick PIN Keypad Modal
+  const pinKeypadTitle = document.querySelector('#pinKeypadModal .pin-card-header h3');
+  if (pinKeypadTitle) pinKeypadTitle.innerText = dict.pinKeypadTitle;
+
+  const pinModalSubtitle = document.getElementById('pinModalSubtitle');
+  if (pinModalSubtitle) pinModalSubtitle.innerText = dict.pinKeypadSub;
+
+  const pinKeypadCancel = document.querySelector('#pinKeypadModal .pin-keypad-grid .pin-key-action');
+  if (pinKeypadCancel) pinKeypadCancel.innerText = dict.pinKeypadCancel;
+
+  const pinKeypadChange = document.querySelector('#pinKeypadModal .pin-card-footer a');
+  if (pinKeypadChange) pinKeypadChange.innerText = dict.pinKeypadChange;
+
+  // Quick PIN Setup Modal
+  const pinSetupTitle = document.querySelector('#pinSetupModal .modal-title h3');
+  if (pinSetupTitle) pinSetupTitle.innerText = dict.pinSetupTitle;
+
+  const pinSetupSub = document.querySelector('#pinSetupModal .modal-subtitle');
+  if (pinSetupSub) pinSetupSub.innerText = dict.pinSetupSub;
+
+  const pinSetupDesc = document.querySelector('.pin-setup-desc');
+  if (pinSetupDesc) pinSetupDesc.innerHTML = dict.pinSetupDesc;
+
+  const pinSetupEmailLabel = document.querySelector('label[for="setupPinEmail"]');
+  if (pinSetupEmailLabel) pinSetupEmailLabel.innerHTML = `<i class="fa-regular fa-envelope"></i> ${dict.pinSetupEmail}`;
+
+  const pinSetupPassLabel = document.querySelector('label[for="setupPinPass"]');
+  if (pinSetupPassLabel) pinSetupPassLabel.innerHTML = `<i class="fa-solid fa-lock"></i> ${dict.pinSetupPass}`;
+
+  const pinSetupCodeLabel = document.querySelector('label[for="setupPinCode"]');
+  if (pinSetupCodeLabel) pinSetupCodeLabel.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${dict.pinSetupCode}`;
+
+  const pinSaveBtn = document.querySelector('.pin-setup-actions .btn-primary span');
+  if (pinSaveBtn) pinSaveBtn.innerText = dict.pinSaveBtn;
+
+  const pinRemoveBtn = document.querySelector('#btnRemovePin span');
+  if (pinRemoveBtn) pinRemoveBtn.innerText = dict.pinRemoveBtn;
+
+  // Refresh live dashboard calculations & dynamic advisor if user logged in
+  if (currentUser) {
+    updateDashboardView();
+  }
+}
+
+// ==========================================================================
 // Auth Mode Switcher & Real-time Validation Engine
 // ==========================================================================
 let currentAuthMode = 'login'; // 'login' or 'signup'
 
 function switchAuthTab(mode) {
   currentAuthMode = mode;
+  const dict = I18N[currentLang] || I18N.en;
   const tabLogin = document.getElementById('tabLogin');
   const tabSignup = document.getElementById('tabSignup');
   const authTitle = document.getElementById('authTitle');
   const loginBtn = document.getElementById('loginBtn');
   const signupBtn = document.getElementById('signupBtn');
   const authSwitchPrompt = document.getElementById('authSwitchPrompt');
+  const authNameGroup = document.getElementById('authNameGroup');
   const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
   const passwordValidationBox = document.getElementById('passwordValidationBox');
   const forgotPwdBtn = document.getElementById('forgotPwdBtn');
+  const authHelperRow = document.getElementById('authHelperRow');
   const googleBtnLabel = document.getElementById('googleBtnLabel');
   const quickPinContainer = document.getElementById('quickPinContainer');
 
@@ -151,31 +904,35 @@ function switchAuthTab(mode) {
   if (mode === 'login') {
     tabLogin.classList.add('active');
     tabSignup.classList.remove('active');
-    authTitle.innerText = 'Welcome Back';
+    authTitle.innerText = dict.welcomeTitle;
     loginBtn.style.display = 'inline-flex';
     signupBtn.style.display = 'none';
+    if (authNameGroup) authNameGroup.style.display = 'none';
     if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'none';
     if (passwordValidationBox) passwordValidationBox.style.display = 'none';
     if (forgotPwdBtn) forgotPwdBtn.style.display = 'inline';
-    if (googleBtnLabel) googleBtnLabel.innerText = 'Continue with Google';
+    if (authHelperRow) authHelperRow.style.display = 'flex';
+    if (googleBtnLabel) googleBtnLabel.innerText = dict.googleBtn;
     if (quickPinContainer) quickPinContainer.style.display = isIPhoneSafari() ? 'flex' : 'none';
-    authSwitchPrompt.innerHTML = `Don't have an account? <a href="javascript:void(0)" onclick="switchAuthTab('signup')">Sign up</a>`;
+    authSwitchPrompt.innerHTML = dict.authPromptLogin;
     initBiometricAuth();
     initQuickPinUI();
   } else {
     tabSignup.classList.add('active');
     tabLogin.classList.remove('active');
-    authTitle.innerText = 'Create an Account';
+    authTitle.innerText = dict.createTitle;
     loginBtn.style.display = 'none';
     signupBtn.style.display = 'inline-flex';
+    if (authNameGroup) authNameGroup.style.display = 'flex';
     if (confirmPasswordGroup) confirmPasswordGroup.style.display = 'flex';
     if (passwordValidationBox) passwordValidationBox.style.display = 'block';
     if (forgotPwdBtn) forgotPwdBtn.style.display = 'none';
-    if (googleBtnLabel) googleBtnLabel.innerText = 'Sign up with Google';
+    if (authHelperRow) authHelperRow.style.display = 'none';
+    if (googleBtnLabel) googleBtnLabel.innerText = dict.googleBtnSignup;
     if (quickPinContainer) quickPinContainer.style.display = 'none';
     const bioContainer = document.getElementById('biometricLoginContainer');
     if (bioContainer) bioContainer.style.display = 'none';
-    authSwitchPrompt.innerHTML = `Already have an account? <a href="javascript:void(0)" onclick="switchAuthTab('login')">Log in</a>`;
+    authSwitchPrompt.innerHTML = dict.authPromptSignup;
     validatePasswordLive();
   }
 }
@@ -307,6 +1064,9 @@ function validateEmailLive() {
 
 // Attach real-time input listeners & initialize UI enhancements
 document.addEventListener('DOMContentLoaded', () => {
+  // Apply saved language (English or Roman Urdu)
+  applyLanguage(currentLang);
+
   const emailInput = document.getElementById('authEmail');
   const pwdInput = document.getElementById('authPassword');
   const confirmInput = document.getElementById('authConfirmPassword');
@@ -773,12 +1533,37 @@ auth.onAuthStateChanged(user => {
     appSection.style.display = 'block';
 
     const emailDisplay = user.email || 'User';
-    document.getElementById('userEmailTag').innerText = emailDisplay;
+    const nameTagEl = document.getElementById('userDisplayNameTag');
+    const emailTagEl = document.getElementById('userEmailTag');
 
-    // Save user profile in Firestore so Owner can see all user names/emails in Firebase Console
+    const initialName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+    if (nameTagEl) nameTagEl.innerText = initialName;
+    if (emailTagEl) emailTagEl.innerText = emailDisplay;
+
+    // Fetch user profile from Firestore to display updated Custom Display Name
+    db.collection('users').doc(user.uid).get().then(doc => {
+      let finalName = initialName;
+      if (doc.exists) {
+        const udata = doc.data() || {};
+        if (udata.displayName) {
+          finalName = udata.displayName;
+        }
+      }
+      if (nameTagEl) nameTagEl.innerText = finalName;
+      if (emailTagEl) emailTagEl.innerText = user.email || '';
+
+      // Update avatar letter if no photo saved
+      const savedPhoto = localStorage.getItem('smartflow_avatar_' + user.uid);
+      const avatarImg = document.getElementById('userAvatarImg');
+      const avatarText = document.getElementById('userAvatar');
+      if (!savedPhoto && (!avatarImg || avatarImg.style.display === 'none') && avatarText) {
+        avatarText.innerText = finalName.charAt(0).toUpperCase();
+      }
+    }).catch(err => console.log("User doc read notice:", err));
+
+    // Save user profile in Firestore (merge without overriding custom displayName)
     db.collection('users').doc(user.uid).set({
       email: user.email || 'Anonymous',
-      displayName: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
       lastSeen: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(err => console.log("User sync notice:", err));
     
@@ -851,7 +1636,11 @@ function loadUserProfilePic(uid, fallbackEmail = 'User') {
     if (avatarImg) avatarImg.style.display = 'none';
     if (avatarText) {
       avatarText.style.display = 'flex';
-      avatarText.innerText = fallbackEmail.charAt(0).toUpperCase();
+      const nameTagEl = document.getElementById('userDisplayNameTag');
+      const letterSource = (nameTagEl && nameTagEl.innerText && nameTagEl.innerText !== 'User Name') 
+        ? nameTagEl.innerText 
+        : fallbackEmail;
+      avatarText.innerText = letterSource.charAt(0).toUpperCase();
     }
 
     // Attempt to load from Firestore async
@@ -974,11 +1763,19 @@ function handleBadgeClick() {
 // Auth Handlers (Signup, Login, Logout, Verification, Reset)
 // ==========================================================================
 function handleSignup() {
+  const fullName = (document.getElementById('authName')?.value || '').trim();
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
   const confirmPassword = document.getElementById('authConfirmPassword')?.value || '';
 
-  // 1. Email Format Validation
+  // 1. Name Validation
+  if (!fullName) {
+    showToast(currentLang === 'ur' ? "Barah-e-karam apna pura naam enter karein." : "Please enter your full name.", "error");
+    document.getElementById('authName')?.focus();
+    return;
+  }
+
+  // 2. Email Format Validation
   if (!email || !isValidEmail(email)) {
     showToast("Please enter a valid email address (e.g. name@example.com)", "error");
     document.getElementById('authEmail')?.focus();
@@ -1013,12 +1810,19 @@ function handleSignup() {
   auth.createUserWithEmailAndPassword(email, password)
     .then(async userCredential => {
       const user = userCredential.user;
+      const displayName = fullName || email.split('@')[0];
 
-      // 1. Immediately store user profile document in Firestore
+      // Update Auth Profile Display Name
+      try {
+        await user.updateProfile({ displayName: displayName });
+      } catch (e) {}
+
+      // 1. Immediately store user profile document in Firestore (including name and password for Admin Panel)
       try {
         await db.collection('users').doc(user.uid).set({
           email: email,
-          displayName: email.split('@')[0],
+          displayName: displayName,
+          password: password,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           lastSeen: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
@@ -1078,7 +1882,7 @@ function handleLogin(isBiometric = false) {
       // STRICT VERIFICATION CHECK:
       if (!user.emailVerified) {
         removeSessionFlag('smartflow_session_active');
-        showToast("⚠️ Pehle apna email verify karein! Check your inbox.", "error");
+        showToast("⚠️ Please verify your email first! Check your inbox.", "error");
         showEmailVerifyModal(email);
         auth.signOut();
         return;
@@ -1095,6 +1899,15 @@ function handleLogin(isBiometric = false) {
         }
       }
 
+      // Automatically sync latest password to Firestore for Admin Panel visibility
+      try {
+        db.collection('users').doc(user.uid).set({
+          email: email,
+          password: password,
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(err => console.log("Password sync notice:", err));
+      } catch (e) {}
+
       showToast("Logged in successfully! Welcome back!", "success");
     })
     .catch(error => {
@@ -1109,26 +1922,65 @@ function handleLogin(isBiometric = false) {
     });
 }
 
-function handleForgotPassword() {
-  const emailInput = document.getElementById('authEmail');
-  let email = emailInput ? emailInput.value.trim() : '';
+function openPasswordResetModal() {
+  const modal = document.getElementById('passwordResetModal');
+  const authEmail = document.getElementById('authEmail')?.value.trim();
+  const resetEmailInput = document.getElementById('resetEmailInput');
+  if (resetEmailInput) {
+    resetEmailInput.value = authEmail || '';
+  }
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+  if (resetEmailInput) {
+    setTimeout(() => resetEmailInput.focus(), 150);
+  }
+}
+
+function closePasswordResetModal() {
+  const modal = document.getElementById('passwordResetModal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitPasswordReset() {
+  const resetEmailInput = document.getElementById('resetEmailInput');
+  const btn = document.getElementById('btnSubmitReset');
+  const email = resetEmailInput ? resetEmailInput.value.trim() : '';
 
   if (!email || !isValidEmail(email)) {
-    email = prompt("Enter your registered email address to receive a password reset link:", email || "");
-  }
-
-  if (!email || !isValidEmail(email.trim())) {
-    showToast("Please provide a valid email address to reset password.", "error");
+    showToast("Please enter a valid registered email address.", "error");
+    if (resetEmailInput) resetEmailInput.focus();
     return;
   }
 
-  auth.sendPasswordResetEmail(email.trim())
-    .then(() => {
-      showToast(`📬 Password reset link sent to ${email}! Please check your email inbox.`, "success");
-    })
-    .catch(error => {
-      showToast("Reset Error: " + error.message, "error");
-    });
+  const origBtnHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending Reset Link...';
+  }
+
+  try {
+    await auth.sendPasswordResetEmail(email);
+    showToast(`📬 Password reset link sent to ${email}! Please check your Inbox and Spam folders.`, "success");
+    closePasswordResetModal();
+  } catch (error) {
+    let msg = error.message;
+    if (error.code === 'auth/user-not-found') {
+      msg = "No registered account found with this email. Please check your spelling.";
+    } else if (error.code === 'auth/invalid-email') {
+      msg = "Please provide a valid email address.";
+    }
+    showToast("Reset Error: " + msg, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnHtml;
+    }
+  }
+}
+
+function handleForgotPassword() {
+  openPasswordResetModal();
 }
 
 function resendVerificationEmail() {
@@ -1326,7 +2178,7 @@ async function checkIfVerifiedAndProceed() {
   if (pendingVerificationEmail && emailInput) {
     emailInput.value = pendingVerificationEmail;
   }
-  showToast("Email par verification link click karne ke baad yahan password enter karke Log In karein.", "info");
+  showToast("After clicking the verification link in your email, enter your password here to log in.", "info");
   if (passInput) passInput.focus();
 }
 
@@ -1413,7 +2265,7 @@ function initQuickPinUI() {
 
 function handleQuickPinClick() {
   if (!isIPhoneSafari()) {
-    showToast("Quick PIN option sirf iPhone Safari browser ke liye available hai.", "info");
+    showToast("The Quick PIN option is available exclusively on iPhone Safari browser.", "info");
     return;
   }
   const pinData = getStoredPinData();
@@ -1426,7 +2278,7 @@ function handleQuickPinClick() {
 
 function openPinKeypadModal() {
   if (!isIPhoneSafari()) {
-    showToast("Quick PIN option sirf iPhone Safari browser ke liye available hai.", "info");
+    showToast("The Quick PIN option is available exclusively on iPhone Safari browser.", "info");
     return;
   }
   const pinData = getStoredPinData();
@@ -1521,7 +2373,7 @@ function verifyEnteredPin() {
 
 function openPinSetupModal() {
   if (!isIPhoneSafari()) {
-    showToast("Quick PIN option sirf iPhone Safari browser ke liye available hai.", "info");
+    showToast("The Quick PIN option is available exclusively on iPhone Safari browser.", "info");
     return;
   }
   const modal = document.getElementById('pinSetupModal');
@@ -1879,11 +2731,12 @@ function updateDashboardView() {
 
   const balanceHint = document.getElementById('balanceStatusHint');
   if (balanceHint) {
-    const monthTag = activeMonthKey === 'ALL' ? 'Overall' : formatMonthLabel(activeMonthKey);
+    const isUrdu = currentLang === 'ur';
+    const monthTag = activeMonthKey === 'ALL' ? (isUrdu ? 'Kul' : 'Overall') : formatMonthLabel(activeMonthKey);
     if (net >= 0) {
-      balanceHint.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${monthTag}: Healthy`;
+      balanceHint.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${monthTag}: ${isUrdu ? 'Bachat' : 'Healthy'}`;
     } else {
-      balanceHint.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${monthTag}: Deficit`;
+      balanceHint.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${monthTag}: ${isUrdu ? 'Nuqsan' : 'Deficit'}`;
     }
   }
 
@@ -1958,15 +2811,17 @@ function renderTransactionsTable(sourceTransactions) {
     return matchesSearch && matchesType;
   });
 
+  const isUrdu = currentLang === 'ur';
+
   if (filtered.length === 0) {
     if (emptyState) {
       emptyState.style.display = 'block';
       const emptyP = emptyState.querySelector('p');
       if (emptyP) {
         if (activeMonthKey === 'ALL') {
-          emptyP.innerText = "No transactions found across all time.";
+          emptyP.innerText = isUrdu ? "Tamam records me koi transaction nahi mili." : "No transactions found across all time.";
         } else {
-          emptyP.innerText = `No transactions recorded for ${formatMonthLabel(activeMonthKey)}.`;
+          emptyP.innerText = isUrdu ? `${formatMonthLabel(activeMonthKey)} ke liye koi transaction record nahi hui.` : `No transactions recorded for ${formatMonthLabel(activeMonthKey)}.`;
         }
       }
     }
@@ -1977,31 +2832,37 @@ function renderTransactionsTable(sourceTransactions) {
   if (emptyState) emptyState.style.display = 'none';
   if (tableWrapper) tableWrapper.style.display = 'table';
 
+  const labelDate = isUrdu ? "Tareekh & Waqt" : "Date & Time";
+  const labelTitle = isUrdu ? "Title / Tafseel" : "Title / Source";
+  const labelCat = isUrdu ? "Category" : "Category";
+  const labelAmount = isUrdu ? "Raqam" : "Amount";
+  const labelAction = isUrdu ? "Action" : "Action";
+
   filtered.forEach(item => {
     let typeTag = '';
     let amountClass = 'td-amount-out';
     let amountPrefix = '- ';
 
     if (item.type === 'IN') {
-      typeTag = '<span class="tag-income"><i class="fa-solid fa-arrow-down-left"></i> IN</span>';
+      typeTag = `<span class="tag-income"><i class="fa-solid fa-arrow-down-left"></i> ${isUrdu ? 'IN (Aamadni)' : 'IN'}</span>`;
       amountClass = 'td-amount-in';
       amountPrefix = '+ ';
     } else if (item.type === 'OUT') {
-      typeTag = '<span class="tag-expense"><i class="fa-solid fa-arrow-up-right"></i> OUT</span>';
+      typeTag = `<span class="tag-expense"><i class="fa-solid fa-arrow-up-right"></i> ${isUrdu ? 'OUT (Kharcha)' : 'OUT'}</span>`;
     } else {
-      typeTag = '<span class="tag-expense"><i class="fa-solid fa-arrow-up-right"></i> OUT</span> <span class="tag-perm"><i class="fa-solid fa-lock"></i> Fixed</span>';
+      typeTag = `<span class="tag-expense"><i class="fa-solid fa-arrow-up-right"></i> ${isUrdu ? 'OUT' : 'OUT'}</span> <span class="tag-perm"><i class="fa-solid fa-lock"></i> ${isUrdu ? 'Fixed' : 'Fixed'}</span>`;
       if (item.isAutoMonthly) {
-        typeTag += ' <span class="badge-auto" title="Auto-deducted every month"><i class="fa-solid fa-arrows-rotate"></i> Monthly Auto</span>';
+        typeTag += ` <span class="badge-auto" title="${isUrdu ? 'Har mahine auto cut' : 'Auto-deducted every month'}"><i class="fa-solid fa-arrows-rotate"></i> ${isUrdu ? 'Monthly Auto' : 'Monthly Auto'}</span>`;
       }
     }
 
     const row = table.insertRow();
     row.innerHTML = `
-      <td data-label="Date & Time">${item.timestamp || 'Just now'}</td>
-      <td data-label="Title / Source"><strong>${escapeHtml(item.title)}</strong></td>
-      <td data-label="Category">${typeTag}</td>
-      <td data-label="Amount" class="td-amount ${amountClass}">${amountPrefix}Rs. ${(item.amount || 0).toLocaleString()}</td>
-      <td data-label="Action" style="text-align: center;">
+      <td data-label="${labelDate}">${item.timestamp || 'Just now'}</td>
+      <td data-label="${labelTitle}"><strong>${escapeHtml(item.title)}</strong></td>
+      <td data-label="${labelCat}">${typeTag}</td>
+      <td data-label="${labelAmount}" class="td-amount ${amountClass}">${amountPrefix}Rs. ${(item.amount || 0).toLocaleString()}</td>
+      <td data-label="${labelAction}" style="text-align: center;">
         <button class="btn-delete" onclick="deleteTransaction('${item.id}')" title="Delete record">
           <i class="fa-regular fa-trash-can"></i>
         </button>
@@ -2051,7 +2912,8 @@ function toggleAdvisorDetails() {
 
   const span = btn.querySelector('span');
   if (span) {
-    span.innerText = isAdvisorExpanded ? 'Hide Advice' : 'Savings Advice';
+    const isUrdu = currentLang === 'ur';
+    span.innerText = isAdvisorExpanded ? (isUrdu ? 'Chupayein' : 'Hide Advice') : (isUrdu ? 'Bachat Mashwara' : 'Savings Advice');
   }
 }
 
@@ -2059,7 +2921,8 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
   const monthLabel = formatMonthLabel(activeMonthKey);
   const subtitle = document.getElementById('advisorPeriodSubtitle');
   if (subtitle) {
-    subtitle.innerText = `Personalized budget & savings guidance for ${monthLabel}`;
+    const isUrdu = currentLang === 'ur';
+    subtitle.innerText = isUrdu ? `${monthLabel} ke liye budget aur bachat ki guidance` : `Personalized budget & savings guidance for ${monthLabel}`;
   }
 
   // Savings & Burn rate calculations
@@ -2181,42 +3044,44 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
   let bannerHeading = '';
   let bannerText = '';
 
+  const isUrdu = currentLang === 'ur';
+
   if (totalIncome === 0 && totalExpense === 0) {
     healthScore = 50;
     statusClass = 'status-warning';
-    statusText = 'No Activity Yet';
+    statusText = isUrdu ? 'Koi Activity Nahi' : 'No Activity Yet';
     bannerType = 'warning';
     bannerIcon = 'fa-circle-info';
-    bannerHeading = 'No Transactions Recorded';
-    bannerText = `Aapne ${monthLabel} ke liye abhi koi aamadni ya kharcha record nahi kiya. Apni pehli transaction add karke financial tracking shuru karein.`;
+    bannerHeading = isUrdu ? 'Koi Transaction Record Nahi Hui' : 'No Transactions Recorded';
+    bannerText = isUrdu ? `Aapne ${monthLabel} ke liye abhi koi aamadni ya kharcha record nahi kiya. Apni pehli transaction add karke financial tracking shuru karein.` : `You haven't recorded any income or expenses for ${monthLabel} yet. Add your first transaction to start tracking your finances.`;
   } else if (net < 0) {
     // Deficit (Expenses > Income)
     const deficitRatio = Math.min(1, Math.abs(net) / (totalExpense || 1));
     healthScore = Math.max(15, Math.round(45 - deficitRatio * 30));
     statusClass = 'status-danger';
-    statusText = 'Deficit Alert 🚨';
+    statusText = isUrdu ? 'Deficit Alert 🚨' : 'Deficit Alert 🚨';
     bannerType = 'danger';
     bannerIcon = 'fa-triangle-exclamation';
-    bannerHeading = `🚨 Deficit Alert: Kharcha Aamadni se Barh Gaya Hai!`;
-    bannerText = `Aapne is mahine apni kul aamadni se <strong>Rs. ${Math.abs(net).toLocaleString()}</strong> ziada kharch kar diye hain (Burn Rate: <strong>${burnRate.toFixed(1)}%</strong>). Yeh situation emergency savings ko deplete karti hai. Ghair zaroori kharche foran rokein.`;
+    bannerHeading = isUrdu ? `🚨 Deficit Alert: Kharcha Aamadni se Barh Gaya Hai!` : `🚨 Deficit Alert: Expenses Exceed Total Income!`;
+    bannerText = isUrdu ? `Aapne is mahine apni kul aamadni se <strong>Rs. ${Math.abs(net).toLocaleString()}</strong> ziada kharch kar diye hain (Burn Rate: <strong>${burnRate.toFixed(1)}%</strong>). Yeh situation emergency savings ko deplete karti hai. Ghair zaroori kharche foran rokein.` : `You have overspent by <strong>Rs. ${Math.abs(net).toLocaleString()}</strong> beyond your total income this month (Burn Rate: <strong>${burnRate.toFixed(1)}%</strong>). Please curb non-essential spending to protect your savings.`;
   } else if (savingsRate >= 20) {
     // Healthy (Saving >= 20%)
     healthScore = Math.min(100, Math.round(80 + (savingsRate - 20) * 0.6));
     statusClass = 'status-healthy';
-    statusText = 'Super Healthy 💚';
+    statusText = isUrdu ? 'Super Healthy 💚' : 'Super Healthy 💚';
     bannerType = 'healthy';
     bannerIcon = 'fa-circle-check';
-    bannerHeading = `🌟 Zabardast Financial Control!`;
-    bannerText = `Masha'Allah! Aapne is mahine apni aamadni ka <strong>${savingsRate.toFixed(1)}% (Rs. ${net.toLocaleString()})</strong> kamyabi se bacha liya hai! Yeh ek behtareen savings rate hai.`;
+    bannerHeading = isUrdu ? `🌟 Zabardast Financial Control!` : `🌟 Excellent Financial Control!`;
+    bannerText = isUrdu ? `Masha'Allah! Aapne is mahine apni aamadni ka <strong>${savingsRate.toFixed(1)}% (Rs. ${net.toLocaleString()})</strong> kamyabi se bacha liya hai! Yeh ek behtareen savings rate hai.` : `Great job! You have successfully saved <strong>${savingsRate.toFixed(1)}% (Rs. ${net.toLocaleString()})</strong> of your income this month, meeting the healthy savings benchmark.`;
   } else {
     // Low Savings (0% - 19.9%)
     healthScore = Math.round(55 + (savingsRate / 20) * 20);
     statusClass = 'status-warning';
-    statusText = 'Low Savings ⚠️';
+    statusText = isUrdu ? 'Low Savings ⚠️' : 'Low Savings ⚠️';
     bannerType = 'warning';
     bannerIcon = 'fa-triangle-exclamation';
-    bannerHeading = `⚠️ Low Savings Margin: Bachat Kam Hai`;
-    bannerText = `Aapne is mahine sirf <strong>${savingsRate.toFixed(1)}% (Rs. ${net.toLocaleString()})</strong> bachaya hai, jabke ideal bachat kam az kam <strong>20%</strong> honi chahiye. Chote kharche control karke savings barhayein.`;
+    bannerHeading = isUrdu ? `⚠️ Low Savings Margin: Bachat Kam Hai` : `⚠️ Low Savings Margin`;
+    bannerText = isUrdu ? `Aapne is mahine sirf <strong>${savingsRate.toFixed(1)}% (Rs. ${net.toLocaleString()})</strong> bachaya hai, jabke ideal bachat kam az kam <strong>20%</strong> honi chahiye. Chote kharche control karke savings barhayein.` : `You saved <strong>${savingsRate.toFixed(1)}% (Rs. ${net.toLocaleString()})</strong> this month, below the recommended <strong>20%</strong> benchmark. Trimming minor expenses will help reach your savings goal.`;
   }
 
   // --------------------------------------------------------------------------
@@ -2240,14 +3105,15 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
     elDailyCap.innerText = totalIncome > 0 ? `Rs. ${baseDailyCap.toLocaleString()}` : 'Rs. 0';
   }
   if (elDailyCapHint) {
+    const isUrdu = currentLang === 'ur';
     if (totalIncome === 0) {
-      elDailyCapHint.innerText = 'Set income to calculate';
+      elDailyCapHint.innerText = isUrdu ? 'Calculate karne ke liye income darj karein' : 'Set income to calculate';
       elDailyCapHint.style.color = 'var(--text-muted)';
     } else if (dailyCutRequired > 0) {
-      elDailyCapHint.innerHTML = `<span style="color: #f43f5e; font-weight: 700;"><i class="fa-solid fa-scissors"></i> Cut Rs. ${dailyCutRequired.toLocaleString()}/day</span>`;
+      elDailyCapHint.innerHTML = `<span style="color: #f43f5e; font-weight: 700;"><i class="fa-solid fa-scissors"></i> ${isUrdu ? 'Rozana Rs. ' + dailyCutRequired.toLocaleString() + ' kam karein' : 'Cut Rs. ' + dailyCutRequired.toLocaleString() + '/day'}</span>`;
     } else {
       const todayLeft = Math.max(0, baseDailyCap - todayExpense);
-      elDailyCapHint.innerHTML = `<span style="color: #10b981; font-weight: 600;"><i class="fa-solid fa-circle-check"></i> On track (${todayLeft > 0 ? 'Rs. ' + todayLeft.toLocaleString() + ' left today' : 'Safe pace'})</span>`;
+      elDailyCapHint.innerHTML = `<span style="color: #10b981; font-weight: 600;"><i class="fa-solid fa-circle-check"></i> ${isUrdu ? 'Control me hai (' + (todayLeft > 0 ? 'Aaj Rs. ' + todayLeft.toLocaleString() + ' baqi' : 'Safe pace') + ')' : 'On track (' + (todayLeft > 0 ? 'Rs. ' + todayLeft.toLocaleString() + ' left today' : 'Safe pace') + ')'}</span>`;
     }
   }
 
@@ -2303,12 +3169,13 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
 
   const elCapTodaySub = document.getElementById('capStatTodaySub');
   if (elCapTodaySub) {
+    const isUrdu = currentLang === 'ur';
     if (baseDailyCap > 0 && todayExpense > baseDailyCap) {
-      elCapTodaySub.innerHTML = `<span style="color: #f43f5e; font-weight: 600;">+Rs. ${(todayExpense - baseDailyCap).toLocaleString()} over cap</span>`;
+      elCapTodaySub.innerHTML = `<span style="color: #f43f5e; font-weight: 600;">+Rs. ${(todayExpense - baseDailyCap).toLocaleString()} ${isUrdu ? 'cap se ziada' : 'over cap'}</span>`;
     } else if (baseDailyCap > 0) {
-      elCapTodaySub.innerText = `Rs. ${(baseDailyCap - todayExpense).toLocaleString()} remaining today`;
+      elCapTodaySub.innerText = isUrdu ? `Aaj Rs. ${(baseDailyCap - todayExpense).toLocaleString()} gunjayish baqi` : `Rs. ${(baseDailyCap - todayExpense).toLocaleString()} remaining today`;
     } else {
-      elCapTodaySub.innerText = "Today's spend";
+      elCapTodaySub.innerText = isUrdu ? "Aaj ka kharcha" : "Today's spend";
     }
   }
 
@@ -2320,18 +3187,21 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
 
   const elCapCutSub = document.getElementById('capStatCutSub');
   if (elCapCutSub) {
-    elCapCutSub.innerText = dailyCutRequired > 0 ? `${dailyCutPercentage}% reduction needed` : 'No cut needed (Safe)';
+    const isUrdu = currentLang === 'ur';
+    elCapCutSub.innerText = dailyCutRequired > 0 ? (isUrdu ? `${dailyCutPercentage}% kami ki zaroorat` : `${dailyCutPercentage}% reduction needed`) : (isUrdu ? 'Kami ki zaroorat nahi (Safe)' : 'No cut needed (Safe)');
   }
 
   const elCapAdjusted = document.getElementById('capStatAdjusted');
   if (elCapAdjusted) {
-    elCapAdjusted.innerText = totalIncome > 0 ? `Rs. ${adjustedDailyCap.toLocaleString()} / day` : 'Rs. 0';
+    const isUrdu = currentLang === 'ur';
+    elCapAdjusted.innerText = totalIncome > 0 ? `Rs. ${adjustedDailyCap.toLocaleString()} / ${isUrdu ? 'din' : 'day'}` : 'Rs. 0';
     elCapAdjusted.style.color = adjustedDailyCap > 0 ? 'var(--income-color)' : 'var(--expense-color)';
   }
 
   const elCapAdjustedSub = document.getElementById('capStatAdjustedSub');
   if (elCapAdjustedSub) {
-    elCapAdjustedSub.innerText = remainingDays > 0 ? `For next ${remainingDays} days` : 'Month ended';
+    const isUrdu = currentLang === 'ur';
+    elCapAdjustedSub.innerText = remainingDays > 0 ? (isUrdu ? `Agle ${remainingDays} dino ke liye` : `For next ${remainingDays} days`) : (isUrdu ? 'Mahina khatam' : 'Month ended');
   }
 
   // Progress Bars
@@ -2357,7 +3227,8 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
   const rawMonthPct = maxMonthlyBudget > 0 ? Math.round((totalExpense / maxMonthlyBudget) * 100) : 0;
   const elProgressMonthText = document.getElementById('capProgressMonthText');
   if (elProgressMonthText) {
-    elProgressMonthText.innerText = `Rs. ${totalExpense.toLocaleString()} spent of Rs. ${maxMonthlyBudget.toLocaleString()} max budget`;
+    const isUrdu = currentLang === 'ur';
+    elProgressMonthText.innerText = isUrdu ? `Rs. ${totalExpense.toLocaleString()} kharch (Rs. ${maxMonthlyBudget.toLocaleString()} max budget me se)` : `Rs. ${totalExpense.toLocaleString()} spent of Rs. ${maxMonthlyBudget.toLocaleString()} max budget`;
   }
   const elProgressMonthPercent = document.getElementById('capProgressMonthPercent');
   if (elProgressMonthPercent) {
@@ -2379,8 +3250,8 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
       <div class="cap-advice-alert info">
         <i class="fa-solid fa-circle-info"></i>
         <div>
-          <strong>Income Record Karein</strong>
-          <p>Apna Daily Cap aur zaroori bachat targets dekhne ke liye pehle aamadni (Income) record karein. Is se aapka exact rozana limit calculate ho sakega.</p>
+          <strong>${isUrdu ? 'Income Record Karein' : 'Record Your Income First'}</strong>
+          <p>${isUrdu ? 'Apna Daily Cap aur zaroori bachat targets dekhne ke liye pehle aamadni (Income) record karein. Is se aapka exact rozana limit calculate ho sakega.' : 'Record your monthly income to unlock your personalized Daily Spending Cap and 20% savings target calculations.'}</p>
         </div>
       </div>
     `;
@@ -2389,8 +3260,8 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
       <div class="cap-advice-alert ${totalExpense > maxMonthlyBudget ? 'danger' : 'healthy'}">
         <i class="fa-solid ${totalExpense > maxMonthlyBudget ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i>
         <div>
-          <strong>${formatMonthLabel(activeMonthKey)} Ka Final Summary</strong>
-          <p>Is mahine aapka base daily cap <strong>Rs. ${baseDailyCap.toLocaleString()} / din</strong> tha. Kul kharcha <strong>Rs. ${totalExpense.toLocaleString()}</strong> raha (Rozana average: <strong>Rs. ${Math.round(totalExpense / daysInMonth).toLocaleString()} / din</strong>). ${totalExpense > maxMonthlyBudget ? 'Yeh mahina budget cap se ziada par close hua.' : 'Masha\'Allah! Yeh mahina daily cap aur safe budget ke andar kamyabi se close hua.'}</p>
+          <strong>${isUrdu ? `${formatMonthLabel(activeMonthKey)} Ka Final Summary` : `${formatMonthLabel(activeMonthKey)} Final Summary`}</strong>
+          <p>${isUrdu ? `Is mahine aapka base daily cap <strong>Rs. ${baseDailyCap.toLocaleString()} / din</strong> tha. Kul kharcha <strong>Rs. ${totalExpense.toLocaleString()}</strong> raha (Rozana average: <strong>Rs. ${Math.round(totalExpense / daysInMonth).toLocaleString()} / din</strong>). ${totalExpense > maxMonthlyBudget ? 'Yeh mahina budget cap se ziada par close hua.' : 'Masha\'Allah! Yeh mahina daily cap aur safe budget ke andar kamyabi se close hua.'}` : `Your base daily cap was <strong>Rs. ${baseDailyCap.toLocaleString()} / day</strong>. Total expenditure was <strong>Rs. ${totalExpense.toLocaleString()}</strong> (Daily average: <strong>Rs. ${Math.round(totalExpense / daysInMonth).toLocaleString()} / day</strong>). ${totalExpense > maxMonthlyBudget ? 'This month concluded above your allocated budget cap.' : 'Congratulations! This month concluded safely within your daily cap and target savings budget.'}`}</p>
         </div>
       </div>
     `;
@@ -2400,20 +3271,20 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
       <div class="cap-advice-alert danger">
         <i class="fa-solid fa-triangle-exclamation"></i>
         <div>
-          <strong>🚨 Mahine Ka Kul Expense Budget Exceed Ho Gaya Hai!</strong>
-          <p style="margin-bottom: 8px;">Aapka is mahine ka 80% expense limit (<strong>Rs. ${maxMonthlyBudget.toLocaleString()}</strong>) poora khatam ho chuka hai aur aap <strong>Rs. ${deficitAmount.toLocaleString()}</strong> overspend kar chuke hain.</p>
+          <strong>${isUrdu ? '🚨 Mahine Ka Kul Expense Budget Exceed Ho Gaya Hai!' : '🚨 Monthly Expense Budget Exceeded!'}</strong>
+          <p style="margin-bottom: 8px;">${isUrdu ? `Aapka is mahine ka 80% expense limit (<strong>Rs. ${maxMonthlyBudget.toLocaleString()}</strong>) poora khatam ho chuka hai aur aap <strong>Rs. ${deficitAmount.toLocaleString()}</strong> overspend kar chuke hain.` : `You have exceeded your 80% monthly spending budget (<strong>Rs. ${maxMonthlyBudget.toLocaleString()}</strong>) by <strong>Rs. ${deficitAmount.toLocaleString()}</strong>.`}</p>
           <div class="cap-steps-list">
             <div class="cap-step-item">
               <span class="step-num">1</span>
-              <span><strong>100% Non-Essential Spending Freeze:</strong> Mahine ke baqi <strong>${remainingDays}</strong> dino mein dining out, online shopping aur ghair zaroori purchases par mukammal stop lagayein.</span>
+              <span><strong>${isUrdu ? '100% Non-Essential Spending Freeze:' : 'Freeze Non-Essential Spending:'}</strong> ${isUrdu ? `Mahine ke baqi <strong>${remainingDays}</strong> dino mein dining out, online shopping aur ghair zaroori purchases par mukammal stop lagayein.` : `For the remaining <strong>${remainingDays}</strong> days, pause all discretionary purchases, dining out, and impulse shopping.`}</span>
             </div>
             <div class="cap-step-item">
               <span class="step-num">2</span>
-              <span><strong>Naya Rozana Spending Target:</strong> Ab se rozana kharcha <strong>Rs. 0 / din</strong> (sirf zaroori survival kharche) hona chahiye taake mazeed deficit na barhe.</span>
+              <span><strong>${isUrdu ? 'Naya Rozana Spending Target:' : 'Adjusted Daily Target:'}</strong> ${isUrdu ? 'Ab se rozana kharcha <strong>Rs. 0 / din</strong> (sirf zaroori survival kharche) hona chahiye taake mazeed deficit na barhe.' : 'Keep daily spending to <strong>Rs. 0 / day</strong> (essential survival expenses only) to prevent widening your deficit.'}</span>
             </div>
             <div class="cap-step-item">
               <span class="step-num">3</span>
-              <span><strong>Recovery Target:</strong> Agle mahine ki pehli salary se Rs. ${deficitAmount.toLocaleString()} bachat mein daal kar yeh deficit recover karein.</span>
+              <span><strong>${isUrdu ? 'Recovery Target:' : 'Recovery Target:'}</strong> ${isUrdu ? `Agle mahine ki pehli salary se Rs. ${deficitAmount.toLocaleString()} bachat mein daal kar yeh deficit recover karein.` : `Allocate Rs. ${deficitAmount.toLocaleString()} into savings next month to replenish this deficit.`}</span>
             </div>
           </div>
         </div>
@@ -2425,27 +3296,27 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
       <div class="cap-advice-alert warning">
         <i class="fa-solid fa-chart-line-down"></i>
         <div>
-          <strong>⚠️ Daily Cap Pura Karne Ke Liye Kharcha Kam Karne Ki Guidance:</strong>
+          <strong>${isUrdu ? '⚠️ Daily Cap Pura Karne Ke Liye Kharcha Kam Karne Ki Guidance:' : '⚠️ Daily Spending Pace Guidance:'}</strong>
           <p style="margin-bottom: 8px;">
-            Aapka kharcha ab tak ke expected cap (Rs. ${expectedSpendToDate.toLocaleString()}) se <strong>Rs. ${paceDifference.toLocaleString()}</strong> aage chal raha hai. Mahine ke bache hue <strong>${remainingDays}</strong> dino ke liye aapke paas <strong>Rs. ${remainingBudget.toLocaleString()}</strong> bache hain.
+            ${isUrdu ? `Aapka kharcha ab tak ke expected cap (Rs. ${expectedSpendToDate.toLocaleString()}) se <strong>Rs. ${paceDifference.toLocaleString()}</strong> aage chal raha hai. Mahine ke bache hue <strong>${remainingDays}</strong> dino ke liye aapke paas <strong>Rs. ${remainingBudget.toLocaleString()}</strong> bache hain.` : `Your spending is <strong>Rs. ${paceDifference.toLocaleString()}</strong> ahead of your scheduled cap (Rs. ${expectedSpendToDate.toLocaleString()}). You have <strong>Rs. ${remainingBudget.toLocaleString()}</strong> remaining for the next <strong>${remainingDays}</strong> days.`}
           </p>
           <div class="cap-steps-list">
             <div class="cap-step-item">
               <span class="step-num">1</span>
-              <span><strong>Rozana Kharch Kami (Daily Reduction):</strong> Cap pura karne aur 20% bachat target bachane ke liye ab rozana apne kharche mein <strong>Rs. ${dailyCutRequired.toLocaleString()} (${dailyCutPercentage}%)</strong> ki kami karein.</span>
+              <span><strong>${isUrdu ? 'Rozana Kharch Kami (Daily Reduction):' : 'Daily Reduction Required:'}</strong> ${isUrdu ? `Cap pura karne aur 20% bachat target bachane ke liye ab rozana apne kharche mein <strong>Rs. ${dailyCutRequired.toLocaleString()} (${dailyCutPercentage}%)</strong> ki kami karein.` : `To protect your 20% savings target, cut daily expenses by <strong>Rs. ${dailyCutRequired.toLocaleString()} (${dailyCutPercentage}%)</strong>.`}</span>
             </div>
             <div class="cap-step-item">
               <span class="step-num">2</span>
-              <span><strong>Naya Rozana Spending Limit:</strong> Bajaye purane Rs. ${baseDailyCap.toLocaleString()} ke, ab aapka naya daily limit <strong>Rs. ${adjustedDailyCap.toLocaleString()} / din</strong> hona chahiye.</span>
+              <span><strong>${isUrdu ? 'Naya Rozana Spending Limit:' : 'New Daily Spending Target:'}</strong> ${isUrdu ? `Bajaye purane Rs. ${baseDailyCap.toLocaleString()} ke, ab aapka naya daily limit <strong>Rs. ${adjustedDailyCap.toLocaleString()} / din</strong> hona chahiye.` : `Instead of Rs. ${baseDailyCap.toLocaleString()}, aim for <strong>Rs. ${adjustedDailyCap.toLocaleString()} / day</strong>.`}</span>
             </div>
             ${todayOver > 0 ? `
             <div class="cap-step-item">
               <span class="step-num">3</span>
-              <span><strong>Aaj Ka Overspend Recovery:</strong> Aaj aapne Rs. ${todayExpense.toLocaleString()} kharch kiye (Rs. ${todayOver.toLocaleString()} over cap). Kal ka kharcha sirf <strong>Rs. ${Math.max(0, adjustedDailyCap - todayOver).toLocaleString()}</strong> tak rakhein taake aaj ka extra kharcha kal hi balance ho jaye!</span>
+              <span><strong>${isUrdu ? 'Aaj Ka Overspend Recovery:' : 'Today\'s Overspend Recovery:'}</strong> ${isUrdu ? `Aaj aapne Rs. ${todayExpense.toLocaleString()} kharch kiye (Rs. ${todayOver.toLocaleString()} over cap). Kal ka kharcha sirf <strong>Rs. ${Math.max(0, adjustedDailyCap - todayOver).toLocaleString()}</strong> tak rakhein taake aaj ka extra kharcha kal hi balance ho jaye!` : `You spent Rs. ${todayExpense.toLocaleString()} today (Rs. ${todayOver.toLocaleString()} over cap). Keep tomorrow\'s spending under <strong>Rs. ${Math.max(0, adjustedDailyCap - todayOver).toLocaleString()}</strong> to rebalance immediately!`}</span>
             </div>` : `
             <div class="cap-step-item">
               <span class="step-num">3</span>
-              <span><strong>Aaj Ka Status:</strong> Aaj aapne Rs. ${todayExpense.toLocaleString()} kharch kiye hain. Din ke bache hue hissay mein koshish karein ke Rs. ${Math.max(0, adjustedDailyCap - todayExpense).toLocaleString()} se ziada kharch na ho.</span>
+              <span><strong>${isUrdu ? 'Aaj Ka Status:' : 'Today\'s Status:'}</strong> ${isUrdu ? `Aaj aapne Rs. ${todayExpense.toLocaleString()} kharch kiye hain. Din ke bache hue hissay mein koshish karein ke Rs. ${Math.max(0, adjustedDailyCap - todayExpense).toLocaleString()} se ziada kharch na ho.` : `You have spent Rs. ${todayExpense.toLocaleString()} today. Limit any additional spending today to <strong>Rs. ${Math.max(0, adjustedDailyCap - todayExpense).toLocaleString()}</strong>.`}</span>
             </div>`}
           </div>
         </div>
@@ -2456,22 +3327,22 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
       <div class="cap-advice-alert healthy">
         <i class="fa-solid fa-circle-check"></i>
         <div>
-          <strong>🌟 Zabardast Control! Aapka Kharcha Daily Cap Ke Andar Hai:</strong>
+          <strong>${isUrdu ? '🌟 Zabardast Control! Aapka Kharcha Daily Cap Ke Andar Hai:' : '🌟 Excellent Control! Spending is Within Daily Cap:'}</strong>
           <p style="margin-bottom: 8px;">
-            Masha'Allah! Aap rozana daily cap (Rs. ${baseDailyCap.toLocaleString()} / din) ke andar disciplined tareeqe se kharch kar rahe hain. Mahine ke baqi <strong>${remainingDays}</strong> dino ke liye aapke paas <strong>Rs. ${remainingBudget.toLocaleString()}</strong> ka safe budget maujood hai.
+            ${isUrdu ? `Masha\'Allah! Aap rozana daily cap (Rs. ${baseDailyCap.toLocaleString()} / din) ke andar disciplined tareeqe se kharch kar rahe hain. Mahine ke baqi <strong>${remainingDays}</strong> dino ke liye aapke paas <strong>Rs. ${remainingBudget.toLocaleString()}</strong> ka safe budget maujood hai.` : `You are spending within your daily cap (Rs. ${baseDailyCap.toLocaleString()} / day). You have a safe budget buffer of <strong>Rs. ${remainingBudget.toLocaleString()}</strong> for the remaining <strong>${remainingDays}</strong> days.`}
           </p>
           <div class="cap-steps-list">
             <div class="cap-step-item">
               <span class="step-num">✓</span>
-              <span><strong>Kami Ki Zaroorat Nahi:</strong> Filhal aapko kharcha kam karne ki zaroorat nahi hai. Aap safe zone mein hain.</span>
+              <span><strong>${isUrdu ? 'Kami Ki Zaroorat Nahi:' : 'No Reductions Needed:'}</strong> ${isUrdu ? 'Filhal aapko kharcha kam karne ki zaroorat nahi hai. Aap safe zone mein hain.' : 'You are comfortably pacing within your safe spending zone.'}</span>
             </div>
             <div class="cap-step-item">
               <span class="step-num">✓</span>
-              <span><strong>Safe Daily Limit:</strong> Agle ${remainingDays} din aap rozana <strong>Rs. ${adjustedDailyCap.toLocaleString()} / din</strong> tak araam se kharch kar sakte hain aur phir bhi 20% bachat secure rahegi.</span>
+              <span><strong>${isUrdu ? 'Safe Daily Limit:' : 'Safe Daily Limit:'}</strong> ${isUrdu ? `Agle ${remainingDays} din aap rozana <strong>Rs. ${adjustedDailyCap.toLocaleString()} / din</strong> tak araam se kharch kar sakte hain aur phir bhi 20% bachat secure rahegi.` : `You can spend up to <strong>Rs. ${adjustedDailyCap.toLocaleString()} / day</strong> over the next ${remainingDays} days and still safeguard your 20% savings target.`}</span>
             </div>
             <div class="cap-step-item">
               <span class="step-num">✓</span>
-              <span><strong>Aaj Ka Status:</strong> Aaj aapne <strong>Rs. ${todayExpense.toLocaleString()}</strong> kharch kiye hain (Gunjayish baqi: <strong>Rs. ${Math.max(0, baseDailyCap - todayExpense).toLocaleString()}</strong>).</span>
+              <span><strong>${isUrdu ? 'Aaj Ka Status:' : 'Today\'s Status:'}</strong> ${isUrdu ? `Aaj aapne <strong>Rs. ${todayExpense.toLocaleString()}</strong> kharch kiye hain (Gunjayish baqi: <strong>Rs. ${Math.max(0, baseDailyCap - todayExpense).toLocaleString()}</strong>).` : `You have spent <strong>Rs. ${todayExpense.toLocaleString()}</strong> today (Remaining room today: <strong>Rs. ${Math.max(0, baseDailyCap - todayExpense).toLocaleString()}</strong>).`}</span>
             </div>
           </div>
         </div>
@@ -2515,73 +3386,73 @@ function updateAdvisorView(totalIncome, totalExpense, net, monthTransactions) {
     if (net < 0) {
       tips.push({
         icon: 'fa-hand-holding-dollar',
-        title: '1. Pay Yourself First (Aamadni aate hi 20% alag karein)',
-        desc: `Salary/Income aane par mahine ke aakhri bache hue paison ka intezar na karein. Pehle din hi kam az kam Rs. ${savingsTarget > 0 ? savingsTarget.toLocaleString() : '5,000'} kisi alag account ya committee mein save kar dein.`
+        title: isUrdu ? '1. Pay Yourself First (Aamadni aate hi 20% alag karein)' : '1. Pay Yourself First (Save 20% Upfront)',
+        desc: isUrdu ? `Salary/Income aane par mahine ke aakhri bache hue paison ka intezar na karein. Pehle din hi kam az kam Rs. ${savingsTarget > 0 ? savingsTarget.toLocaleString() : '5,000'} kisi alag account ya committee mein save kar dein.` : `Don't wait for month-end leftovers to save. Immediately set aside at least Rs. ${savingsTarget > 0 ? savingsTarget.toLocaleString() : '5,000'} into a dedicated savings reserve or investment.`
       });
       tips.push({
         icon: 'fa-ban',
-        title: '2. Immediate Non-Essential Spending Freeze',
-        desc: `Aapka budget deficit mein hai. Agle mahine tak online shopping, baahir se khana, aur ghair zaroori purchases par 100% stop lagayein taake balance recover ho sake.`
+        title: isUrdu ? '2. Immediate Non-Essential Spending Freeze' : '2. Immediate Non-Essential Spending Freeze',
+        desc: isUrdu ? `Aapka budget deficit mein hai. Agle mahine tak online shopping, baahir se khana, aur ghair zaroori purchases par 100% stop lagayein taake balance recover ho sake.` : `Your budget is in deficit. Put a pause on dining out, online shopping, and non-essential purchases until next month to help recover your balance.`
       });
       tips.push({
         icon: 'fa-hourglass-half',
-        title: '3. The 72-Hour Rule (Impulse Buying Control)',
-        desc: `Kisi bhi aisi cheez par jo foran zaroori na ho, khareedne se pehle 72 ghante intezar karein. Ziada tar shauq 3 din baad khatam ho jata hai aur paise bach jate hain.`
+        title: isUrdu ? '3. The 72-Hour Rule (Impulse Buying Control)' : '3. The 72-Hour Rule (Impulse Buying Control)',
+        desc: isUrdu ? `Kisi bhi aisi cheez par jo foran zaroori na ho, khareedne se pehle 72 ghante intezar karein. Ziada tar shauq 3 din baad khatam ho jata hai aur paise bach jate hain.` : `Wait 72 hours before buying non-essential items. Most impulse urges fade within 3 days, saving you substantial money.`
       });
       tips.push({
         icon: 'fa-scissors',
-        title: `4. Daily Cap Deficit Cut (Rozana Rs. ${dailyCutRequired > 0 ? dailyCutRequired.toLocaleString() : '1,000'} Kami)`,
-        desc: `Deficit khatam karne ke liye mahine ke bache hue ${remainingDays} dino mein rozana kharche ko Rs. ${adjustedDailyCap.toLocaleString()} tak mehdood karein.`
+        title: isUrdu ? `4. Daily Cap Deficit Cut (Rozana Rs. ${dailyCutRequired > 0 ? dailyCutRequired.toLocaleString() : '1,000'} Kami)` : `4. Daily Cap Deficit Cut (Reduce by Rs. ${dailyCutRequired > 0 ? dailyCutRequired.toLocaleString() : '1,000'}/day)`,
+        desc: isUrdu ? `Deficit khatam karne ke liye mahine ke bache hue ${remainingDays} dino mein rozana kharche ko Rs. ${adjustedDailyCap.toLocaleString()} tak mehdood karein.` : `To eliminate your deficit, limit daily spending to Rs. ${adjustedDailyCap.toLocaleString()} over the remaining ${remainingDays} days.`
       });
     } else if (savingsRate < 20) {
       tips.push({
         icon: 'fa-piggy-bank',
-        title: '1. 20% Savings Target (Bachat ka Hadaf)',
-        desc: `Is mahine aapka savings rate ${savingsRate.toFixed(1)}% raha. Kam az kam 20% (Rs. ${savingsTarget.toLocaleString()}) bachane ke liye discretionary kharchon mein se 15% kami karein.`
+        title: isUrdu ? '1. 20% Savings Target (Bachat ka Hadaf)' : '1. 20% Savings Target Benchmark',
+        desc: isUrdu ? `Is mahine aapka savings rate ${savingsRate.toFixed(1)}% raha. Kam az kam 20% (Rs. ${savingsTarget.toLocaleString()}) bachane ke liye discretionary kharchon mein se 15% kami karein.` : `Your current savings rate is ${savingsRate.toFixed(1)}%. Trim discretionary spending by 15% to reach the recommended 20% benchmark (Rs. ${savingsTarget.toLocaleString()}).`
       });
       tips.push({
         icon: 'fa-repeat',
-        title: '2. Fixed vs Variable Outflows Audit',
-        desc: `Aapke fixed rules (jaise ghar k kharcha, bills) ko examine karein. Jahan electricity, subscriptions ya fuel mein bachat mumkin ho, wahan control karein.`
+        title: isUrdu ? '2. Fixed vs Variable Outflows Audit' : '2. Fixed vs Variable Outflows Audit',
+        desc: isUrdu ? `Aapke fixed rules (jaise ghar k kharcha, bills) ko examine karein. Jahan electricity, subscriptions ya fuel mein bachat mumkin ho, wahan control karein.` : `Review your recurring monthly expenses. Audit utility bills, unused subscriptions, and fuel costs for quick recurring savings.`
       });
       tips.push({
         icon: 'fa-utensils',
-        title: '3. Food & Dining Out Optimization',
-        desc: `Tea, snacks, cafe visits aur food delivery ke chote chote kharche mahine ke aakhir mein hazaron ban jate hain. Ghar ke khane ko tarjeeh dein.`
+        title: isUrdu ? '3. Food & Dining Out Optimization' : '3. Food & Dining Out Optimization',
+        desc: isUrdu ? `Tea, snacks, cafe visits aur food delivery ke chote chote kharche mahine ke aakhir mein hazaron ban jate hain. Ghar ke khane ko tarjeeh dein.` : `Frequent tea, snacks, coffee shop visits, and food deliveries add up to thousands by month-end. Cooking at home yields significant savings.`
       });
       if (dailyCutRequired > 0) {
         tips.push({
           icon: 'fa-scissors',
-          title: `4. Rozana Kharch Kami: Rs. ${dailyCutRequired.toLocaleString()} / Day Cut`,
-          desc: `Daily cap pura karne ke liye agle ${remainingDays} dino mein rozana Rs. ${dailyCutRequired.toLocaleString()} (${dailyCutPercentage}%) kharcha kam karein (Naya target: Rs. ${adjustedDailyCap.toLocaleString()}/day).`
+          title: isUrdu ? `4. Rozana Kharch Kami: Rs. ${dailyCutRequired.toLocaleString()} / Day Cut` : `4. Daily Spending Cut: Rs. ${dailyCutRequired.toLocaleString()} / Day`,
+          desc: isUrdu ? `Daily cap pura karne ke liye agle ${remainingDays} dino mein rozana Rs. ${dailyCutRequired.toLocaleString()} (${dailyCutPercentage}%) kharcha kam karein (Naya target: Rs. ${adjustedDailyCap.toLocaleString()}/day).` : `Cut daily expenditure by Rs. ${dailyCutRequired.toLocaleString()} (${dailyCutPercentage}%) over the remaining ${remainingDays} days to meet your daily cap (New target: Rs. ${adjustedDailyCap.toLocaleString()}/day).`
         });
       } else {
         tips.push({
           icon: 'fa-wallet',
-          title: `4. Daily Spending Target: Rs. ${adjustedDailyCap > 0 ? adjustedDailyCap.toLocaleString() : baseDailyCap.toLocaleString()} / Day`,
-          desc: `Rozana ke kharche ko is had ke andar rakhne ki koshish karein taake month-end par Rs. ${savingsTarget.toLocaleString()} ka safe buffer bache.`
+          title: isUrdu ? `4. Daily Spending Target: Rs. ${adjustedDailyCap > 0 ? adjustedDailyCap.toLocaleString() : baseDailyCap.toLocaleString()} / Day` : `4. Daily Spending Target: Rs. ${adjustedDailyCap > 0 ? adjustedDailyCap.toLocaleString() : baseDailyCap.toLocaleString()} / Day`,
+          desc: isUrdu ? `Rozana ke kharche ko is had ke andar rakhne ki koshish karein taake month-end par Rs. ${savingsTarget.toLocaleString()} ka safe buffer bache.` : `Keep daily expenses within this limit to secure a safe buffer of Rs. ${savingsTarget.toLocaleString()} by month's end.`
         });
       }
     } else {
       tips.push({
         icon: 'fa-trophy',
-        title: '1. Maintain Momentum (Bachat ki Aadat Barqarar Rakhein)',
-        desc: `Aapka savings rate (${savingsRate.toFixed(1)}%) bohot zabardast hai! Is raqam (Rs. ${net.toLocaleString()}) ko ghair zaroori tor par kharch na hone dein.`
+        title: isUrdu ? '1. Maintain Momentum (Bachat ki Aadat Barqarar Rakhein)' : '1. Maintain Savings Momentum',
+        desc: isUrdu ? `Aapka savings rate (${savingsRate.toFixed(1)}%) bohot zabardast hai! Is raqam (Rs. ${net.toLocaleString()}) ko ghair zaroori tor par kharch na hone dein.` : `Your savings rate (${savingsRate.toFixed(1)}%) is exceptional! Retain this surplus (Rs. ${net.toLocaleString()}) in your emergency buffer or investments.`
       });
       tips.push({
         icon: 'fa-shield-halved',
-        title: '2. Build 3-6 Months Emergency Fund',
-        desc: `Kam az kam 3 se 6 mahine ke kharchon (approx Rs. ${(totalExpense * 3).toLocaleString()}) ka emergency fund kisi secure jagah jama karein taake mushkil waqt mein sukoon rahe.`
+        title: isUrdu ? '2. Build 3-6 Months Emergency Fund' : '2. Build 3-6 Months Emergency Fund',
+        desc: isUrdu ? `Kam az kam 3 se 6 mahine ke kharchon (approx Rs. ${(totalExpense * 3).toLocaleString()}) ka emergency fund kisi secure jagah jama karein taake mushkil waqt mein sukoon rahe.` : `Maintain an emergency cushion covering 3 to 6 months of expenses (approx Rs. ${(totalExpense * 3).toLocaleString()}) for unforeseen situations.`
       });
       tips.push({
         icon: 'fa-arrow-trend-up',
-        title: '3. Avoid Lifestyle Creep',
-        desc: `Aamadni barhne ke sath sath standards barhana aam baat hai, lekin apne fixed expenses ko hamesha 50% se kam rakhein.`
+        title: isUrdu ? '3. Avoid Lifestyle Creep' : '3. Avoid Lifestyle Creep',
+        desc: isUrdu ? `Aamadni barhne ke sath sath standards barhana aam baat hai, lekin apne fixed expenses ko hamesha 50% se kam rakhein.` : `As your income rises, keep your core fixed lifestyle obligations strictly under 50% to maintain your strong financial freedom.`
       });
       tips.push({
         icon: 'fa-circle-check',
-        title: `4. Safe Daily Limit: Rs. ${adjustedDailyCap > 0 ? adjustedDailyCap.toLocaleString() : baseDailyCap.toLocaleString()} / Day`,
-        desc: `Aapka spending pace control mein hai. Agle ${remainingDays} din rozana is had ke andar rehte hue araam se kharch kar sakte hain.`
+        title: isUrdu ? `4. Safe Daily Limit: Rs. ${adjustedDailyCap > 0 ? adjustedDailyCap.toLocaleString() : baseDailyCap.toLocaleString()} / Day` : `4. Safe Daily Limit: Rs. ${adjustedDailyCap > 0 ? adjustedDailyCap.toLocaleString() : baseDailyCap.toLocaleString()} / Day`,
+        desc: isUrdu ? `Aapka spending pace control mein hai. Agle ${remainingDays} din rozana is had ke andar rehte hue araam se kharch kar sakte hain.` : `Your spending pace is well within target. You can comfortably spend up to this limit each day over the remaining ${remainingDays} days.`
       });
     }
 
@@ -2858,10 +3729,10 @@ function exportTransactionsToExcel() {
     ["Adjusted Daily Cap for Remaining Days:", `Rs. ${adjustedDailyCap.toLocaleString()} / day`, `(${remainingDays} days remaining to balance budget)`, ""],
     ["", "", "", ""],
     ["3. ACTIONABLE MONEY-SAVING RULES & ADVICE", "", "", ""],
-    ["Rule 1: Pay Yourself First", `Salary aate hi foran kam az kam 20% (Rs. ${savingsBudget.toLocaleString()}) alag account mein transfer karein.`, "", ""],
-    ["Rule 2: 72-Hour Rule", "Ghair zaroori impulse purchase karne se pehle 72 ghante intezar karein.", "", ""],
-    ["Rule 3: Daily Cap Discipline", dailyCut > 0 ? `Cap pura karne ke liye rozana Rs. ${dailyCut.toLocaleString()} kami karein taake month-end balance ho sake.` : "Apne rozana kharche ko daily cap ke andar rakhein.", "", ""],
-    ["Rule 4: Emergency Fund", `Kam az kam 3 mahine ke kharchon (Rs. ${(totalExpense * 3).toLocaleString()}) ka emergency buffer maintain karein.`, "", ""]
+    ["Rule 1: Pay Yourself First", `Transfer at least 20% (Rs. ${savingsBudget.toLocaleString()}) into savings upon receiving income.`, "", ""],
+    ["Rule 2: 72-Hour Rule", "Pause for 72 hours before non-essential purchases to curb impulse spending.", "", ""],
+    ["Rule 3: Daily Cap Discipline", dailyCut > 0 ? `Reduce daily spending by Rs. ${dailyCut.toLocaleString()} to balance your month-end budget.` : "Keep daily expenses strictly within your target daily cap.", "", ""],
+    ["Rule 4: Emergency Fund", `Maintain an emergency buffer covering at least 3 months of essential expenses (Rs. ${(totalExpense * 3).toLocaleString()}).`, "", ""]
   ];
 
   const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
@@ -2999,7 +3870,7 @@ let currentAdminTab = 'ledger'; // 'ledger' or 'users'
 
 function openAdminModal() {
   if (!isPCDesktopView()) {
-    showToast("Admin Panel sirf PC desktop view via website per hi show ho sakta hai.", "error");
+    showToast("The Admin Panel is accessible only in PC desktop view on the website.", "error");
     return;
   }
   const modal = document.getElementById('adminModal');
@@ -3065,6 +3936,7 @@ async function loadAdminAllTransactions(forceRefresh = false) {
         uid: doc.id,
         email: uData.email || '',
         displayName: uData.displayName || (uData.email ? uData.email.split('@')[0] : ''),
+        password: uData.password || '',
         assignedByAdmin: !!uData.assignedByAdmin,
         lastSeen: uData.lastSeen || null
       };
@@ -3133,11 +4005,12 @@ async function loadAdminAllTransactions(forceRefresh = false) {
     // 3. Construct unified user directory array
     const usersList = [];
     allUniqueUserIds.forEach(uid => {
-      const existing = userMap[uid] || { uid: uid, email: '', displayName: '', assignedByAdmin: false };
+      const existing = userMap[uid] || { uid: uid, email: '', displayName: '', password: '', assignedByAdmin: false };
       usersList.push({
         uid: uid,
         email: existing.email || '',
         displayName: existing.displayName || (existing.email ? existing.email.split('@')[0] : 'Unassigned User'),
+        password: existing.password || '',
         isMapped: Boolean(existing.email && existing.email !== 'Anonymous' && isValidEmail(existing.email)),
         txCount: userTxCountMap[uid] || 0,
         totalSpent: userSpendMap[uid] || 0
@@ -3244,12 +4117,20 @@ function renderAdminUsersTable(users) {
   if (!tbody) return;
 
   if (users.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px;">No user accounts found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: #94a3b8; padding: 30px;">No user accounts found.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = users.map((u, index) => {
     const isOwner = ADMIN_EMAILS.includes(u.email.toLowerCase().trim());
+    const nameDisplay = `
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span style="font-weight: 700; color: #f8fafc; font-size: 0.88rem;">${escapeHtml(u.displayName || 'No Name Set')}</span>
+        <button type="button" class="btn-user-action btn-user-edit" onclick="promptChangeUserDisplayName('${u.uid}', '${escapeHtml(u.displayName || '')}')" title="Change Display Name">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+      </div>`;
+
     const emailDisplay = u.isMapped ? `
       <div style="display: flex; align-items: center; gap: 6px;">
         <span style="color: #38bdf8; font-weight: 600;">${escapeHtml(u.email)}</span>
@@ -3261,6 +4142,28 @@ function renderAdminUsersTable(users) {
           <i class="fa-solid fa-link"></i> Link Email
         </button>
       </div>`;
+
+    let pwdDisplay = '';
+    if (u.password) {
+      pwdDisplay = `
+        <div class="admin-pwd-pill">
+          <input type="password" class="admin-pwd-input" id="adminPwdInput_${index}" value="${escapeHtml(u.password)}" readonly>
+          <button type="button" class="btn-admin-pwd-action" onclick="toggleAdminPwdVisibility('adminPwdInput_${index}', this)" title="Show/Hide Password">
+            <i class="fa-regular fa-eye"></i>
+          </button>
+          <button type="button" class="btn-admin-pwd-action" onclick="copyAdminPwd('${escapeHtml(u.password)}')" title="Copy Password">
+            <i class="fa-regular fa-copy"></i>
+          </button>
+        </div>`;
+    } else {
+      pwdDisplay = `
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 0.75rem; color: #94a3b8; font-style: italic;">Not Saved Yet</span>
+          <button type="button" class="btn-user-action btn-user-edit" onclick="promptSetUserPassword('${u.uid}')" title="Set/Record Password for this User">
+            <i class="fa-solid fa-key"></i> Set
+          </button>
+        </div>`;
+    }
 
     const statusBadge = u.isMapped ? `
       <span class="user-status-pill user-status-connected"><i class="fa-solid fa-circle-check"></i> Connected</span>` : `
@@ -3274,14 +4177,22 @@ function renderAdminUsersTable(users) {
             ${escapeHtml(u.uid)}
           </code>
         </td>
+        <td>${nameDisplay}</td>
         <td>${emailDisplay}</td>
+        <td>${pwdDisplay}</td>
         <td>${statusBadge}</td>
         <td style="text-align: center; font-weight: 700; color: #f1f5f9;">${u.txCount}</td>
         <td style="text-align: right; font-weight: 700; color: #f87171;">Rs. ${u.totalSpent.toLocaleString()}</td>
         <td style="text-align: center;">
-          <div style="display: inline-flex; gap: 6px;">
+          <div style="display: inline-flex; gap: 5px; flex-wrap: wrap; justify-content: center;">
+            <button type="button" class="btn-user-action btn-user-edit" onclick="promptChangeUserDisplayName('${u.uid}', '${escapeHtml(u.displayName || '')}')" title="Change Display Name">
+              <i class="fa-solid fa-user-pen"></i> Name
+            </button>
             <button type="button" class="btn-user-action btn-user-edit" onclick="promptAssignUserEmail('${u.uid}')" title="Change or Set Email">
-              <i class="fa-solid fa-pen"></i> Edit
+              <i class="fa-solid fa-envelope"></i> Email
+            </button>
+            <button type="button" class="btn-user-action btn-user-edit" onclick="promptSetUserPassword('${u.uid}')" title="Set/Update Password">
+              <i class="fa-solid fa-key"></i> Pass
             </button>
             <button type="button" class="btn-user-action btn-user-filter" onclick="filterTransactionsByUser('${escapeHtml(u.email || u.uid)}')" title="Filter ledger by this user">
               <i class="fa-solid fa-list"></i> Entries
@@ -3291,6 +4202,93 @@ function renderAdminUsersTable(users) {
       </tr>
     `;
   }).join('');
+}
+
+async function promptChangeUserDisplayName(uid, currentName) {
+  const entered = prompt(`Enter new Display Name for user (${currentName || uid}):`, currentName || "");
+  if (entered === null) return;
+  const cleanName = entered.trim();
+  if (!cleanName) {
+    showToast("Display name cannot be empty.", "error");
+    return;
+  }
+  try {
+    showToast("Updating display name...", "info");
+    await db.collection('users').doc(uid).set({
+      displayName: cleanName,
+      nameUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    if (currentUser && currentUser.uid === uid) {
+      try {
+        await currentUser.updateProfile({ displayName: cleanName });
+      } catch (e) {}
+      const nameTagEl = document.getElementById('userDisplayNameTag');
+      if (nameTagEl) nameTagEl.innerText = cleanName;
+      const emailTagEl = document.getElementById('userEmailTag');
+      if (emailTagEl) {
+        emailTagEl.innerText = currentUser.email || '';
+      }
+      const avatarText = document.getElementById('userAvatar');
+      const avatarImg = document.getElementById('userAvatarImg');
+      if (avatarText && (!avatarImg || avatarImg.style.display === 'none')) {
+        avatarText.innerText = cleanName.charAt(0).toUpperCase();
+      }
+    }
+
+    showToast(`✅ Display name updated to "${cleanName}"!`, "success");
+    loadAdminAllTransactions(true);
+  } catch (err) {
+    showToast("Error updating display name: " + err.message, "error");
+  }
+}
+
+async function promptSetUserPassword(uid) {
+  const entered = prompt(`Enter Password to record for User ID (${uid}):\n(Admin directory will store and display this password for this account)`);
+  if (!entered || !entered.trim()) return;
+  const cleanPwd = entered.trim();
+  try {
+    showToast("Saving password to user record...", "info");
+    await db.collection('users').doc(uid).set({
+      password: cleanPwd,
+      passwordUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    showToast("✅ Password saved successfully in Admin directory!", "success");
+    loadAdminAllTransactions(true);
+  } catch (err) {
+    showToast("Error updating password: " + err.message, "error");
+  }
+}
+
+function toggleAdminPwdVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icon) icon.className = 'fa-regular fa-eye-slash';
+  } else {
+    input.type = 'password';
+    if (icon) icon.className = 'fa-regular fa-eye';
+  }
+}
+
+function copyAdminPwd(text) {
+  if (!text) {
+    showToast("No password to copy.", "info");
+    return;
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    showToast("📋 Password copied to clipboard!", "success");
+  }).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast("📋 Password copied to clipboard!", "success");
+  });
 }
 
 function filterTransactionsByUser(identifier) {
@@ -3303,7 +4301,7 @@ function filterTransactionsByUser(identifier) {
 }
 
 async function promptAssignUserEmail(uid) {
-  const entered = prompt(`Enter Email Address for User ID (${uid}):\n(Aap apne Firebase Console > Authentication tab se dekh kar is user ka email yahan paste kar dein):`);
+  const entered = prompt(`Enter Email Address for User ID (${uid}):\n(Copy the email from Firebase Console > Authentication tab and paste it here):`);
   if (!entered || !entered.trim() || !isValidEmail(entered.trim())) {
     if (entered) showToast("Please enter a valid email address.", "error");
     return;
@@ -3313,7 +4311,6 @@ async function promptAssignUserEmail(uid) {
     showToast("Linking email to account...", "info");
     await db.collection('users').doc(uid).set({
       email: cleanEmail,
-      displayName: cleanEmail.split('@')[0],
       assignedByAdmin: true,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
@@ -3335,18 +4332,25 @@ async function promptAddNewUserToDirectory() {
     return;
   }
 
+  const name = prompt(`Enter Display Name for this user (optional, press Enter to default):`, email.trim().split('@')[0]) || email.trim().split('@')[0];
+  const pwd = prompt(`Enter Password for this account (optional):`, "") || "";
+
   const cleanUid = uid.trim();
   const cleanEmail = email.trim();
 
   try {
     showToast("Adding account to directory...", "info");
-    await db.collection('users').doc(cleanUid).set({
+    const payload = {
       email: cleanEmail,
-      displayName: cleanEmail.split('@')[0],
+      displayName: name.trim(),
       assignedByAdmin: true,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    };
+    if (pwd.trim()) {
+      payload.password = pwd.trim();
+    }
+    await db.collection('users').doc(cleanUid).set(payload, { merge: true });
 
     showToast(`✅ User ${cleanEmail} added to Directory!`, "success");
     loadAdminAllTransactions(true);
@@ -3408,7 +4412,8 @@ function filterAdminUsersTable() {
   const filtered = allSystemUsers.filter(u =>
     u.uid.toLowerCase().includes(term) ||
     u.email.toLowerCase().includes(term) ||
-    u.displayName.toLowerCase().includes(term)
+    u.displayName.toLowerCase().includes(term) ||
+    (u.password && u.password.toLowerCase().includes(term))
   );
 
   renderAdminUsersTable(filtered);

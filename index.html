@@ -27,7 +27,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
   
   <!-- Custom Modern CSS (v4.0 Ultra Attractive & Responsive) -->
-  <link rel="stylesheet" href="style.css?v=4.5">
+  <link rel="stylesheet" href="style.css?v=5.0">
   
   <!-- Firebase SDKs (v10 Compat Mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -51,8 +51,12 @@
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Global Theme Toggle (Floating Top Right) -->
+  <!-- Global Top Controls (Language Toggle & Theme Toggle) -->
   <div class="top-nav-controls">
+    <button type="button" id="langToggleBtn" class="btn-lang-toggle" onclick="toggleLanguage()" title="Switch Language / Language Tabdeel Karein">
+      <i class="fa-solid fa-language"></i>
+      <span id="langToggleText">English</span>
+    </button>
     <button id="themeToggleBtn" class="btn-icon" onclick="toggleTheme()" title="Switch Theme">
       <i class="fa-solid fa-moon" id="themeIcon"></i>
     </button>
@@ -81,9 +85,17 @@
     <h3 id="authTitle" class="form-section-title">Welcome Back</h3>
     
     <form onsubmit="event.preventDefault();" class="auth-form" id="mainAuthForm">
+      <!-- Full Name Field (Only shown in Signup mode) -->
+      <div class="form-group" id="authNameGroup" style="display: none;">
+        <label for="authName" id="labelAuthName"><i class="fa-solid fa-user"></i> Full Name</label>
+        <div class="input-wrapper">
+          <input type="text" id="authName" placeholder="e.g. Mustajab Ali" autocomplete="name">
+        </div>
+      </div>
+
       <!-- Email Field -->
       <div class="form-group">
-        <label for="authEmail"><i class="fa-regular fa-envelope"></i> Email Address</label>
+        <label for="authEmail" id="labelAuthEmail"><i class="fa-regular fa-envelope"></i> Email Address</label>
         <div class="input-wrapper">
           <input type="email" id="authEmail" placeholder="name@example.com" required autocomplete="email">
         </div>
@@ -93,7 +105,7 @@
       <!-- Password Field -->
       <div class="form-group">
         <div class="label-with-action">
-          <label for="authPassword"><i class="fa-solid fa-lock"></i> Password</label>
+          <label for="authPassword" id="labelAuthPassword"><i class="fa-solid fa-lock"></i> Password</label>
           <div class="label-actions-wrap">
             <a href="javascript:void(0)" class="pin-quick-link" id="pinQuickFillLink" onclick="handleQuickPinClick()" style="display: none;" title="Auto-fill with 4-Digit Quick PIN (iPhone Safari)">
               <i class="fa-solid fa-key"></i> Auto-fill with PIN
@@ -106,6 +118,12 @@
           <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility('authPassword', this)" title="Show/Hide Password">
             <i class="fa-regular fa-eye"></i>
           </button>
+        </div>
+        <!-- Prominent Password Reset Shortcut Link on Login -->
+        <div class="auth-helper-row" id="authHelperRow">
+          <a href="javascript:void(0)" class="btn-reset-pwd-text" onclick="openPasswordResetModal()" title="Reset your account password">
+            <i class="fa-solid fa-key"></i> Forgot / Reset Password?
+          </a>
         </div>
         <!-- Live Password Strength / Requirements (Shown primarily in Signup mode) -->
         <div class="password-validation-box" id="passwordValidationBox" style="display: none;">
@@ -122,7 +140,7 @@
 
       <!-- Confirm Password Field (Only shown in Signup mode) -->
       <div class="form-group" id="confirmPasswordGroup" style="display: none;">
-        <label for="authConfirmPassword"><i class="fa-solid fa-lock-open"></i> Confirm Password</label>
+        <label for="authConfirmPassword" id="labelAuthConfirmPassword"><i class="fa-solid fa-lock-open"></i> Confirm Password</label>
         <div class="input-wrapper">
           <input type="password" id="authConfirmPassword" placeholder="Re-enter your password" autocomplete="new-password">
           <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility('authConfirmPassword', this)" title="Show/Hide Password">
@@ -219,6 +237,7 @@
           </div>
           
           <div class="user-info-col">
+            <span id="userDisplayNameTag" class="user-display-name">User Name</span>
             <div class="user-email-wrap">
               <span id="userEmailTag">user@example.com</span>
             </div>
@@ -407,7 +426,7 @@
           <div class="daily-cap-header">
             <div class="box-head">
               <i class="fa-solid fa-bullseye"></i>
-              <h4>Daily Cap & Expense Pace Guide (Rozana Kharcha Control)</h4>
+              <h4>Daily Cap & Expense Pace Guide</h4>
             </div>
             <span class="daily-cap-status-pill" id="dailyCapStatusPill">
               <i class="fa-solid fa-calculator"></i> Calculating...
@@ -415,7 +434,7 @@
           </div>
 
           <p class="box-desc" id="dailyCapDesc">
-            Rozana kharchon ko daily cap ke mutabiq track karein aur janein ke budget balance aur cap pura karne ke liye kitna kharcha kam karna hoga.
+            Track your daily expenses against your target spending cap, and see actionable steps to keep your monthly budget balanced.
           </p>
 
           <!-- 4 Daily Cap Live KPI Badges -->
@@ -423,22 +442,22 @@
             <div class="cap-stat-card">
               <span class="cap-stat-label"><i class="fa-solid fa-calendar-day"></i> Base Daily Cap</span>
               <strong class="cap-stat-value" id="capStatBase">Rs. 0</strong>
-              <span class="cap-stat-sub" id="capStatBaseSub">Rozana Target Limit</span>
+              <span class="cap-stat-sub" id="capStatBaseSub">Daily Target Limit</span>
             </div>
             <div class="cap-stat-card" id="capStatTodayCard">
-              <span class="cap-stat-label"><i class="fa-solid fa-receipt"></i> Aaj Ka Kharcha</span>
+              <span class="cap-stat-label"><i class="fa-solid fa-receipt"></i> Today's Spending</span>
               <strong class="cap-stat-value" id="capStatToday">Rs. 0</strong>
               <span class="cap-stat-sub" id="capStatTodaySub">Today's Total Spend</span>
             </div>
             <div class="cap-stat-card highlight-cut" id="capStatCutCard">
-              <span class="cap-stat-label"><i class="fa-solid fa-scissors"></i> Rozana Kami Target</span>
+              <span class="cap-stat-label"><i class="fa-solid fa-scissors"></i> Daily Cut Target</span>
               <strong class="cap-stat-value" id="capStatCut">Rs. 0</strong>
               <span class="cap-stat-sub" id="capStatCutSub">Daily Reduction Needed</span>
             </div>
             <div class="cap-stat-card highlight-adjusted" id="capStatAdjCard">
-              <span class="cap-stat-label"><i class="fa-solid fa-flag-checkered"></i> Naya Rozana Limit</span>
+              <span class="cap-stat-label"><i class="fa-solid fa-flag-checkered"></i> Adjusted Daily Cap</span>
               <strong class="cap-stat-value" id="capStatAdjusted">Rs. 0</strong>
-              <span class="cap-stat-sub" id="capStatAdjustedSub">Agle dino ke liye</span>
+              <span class="cap-stat-sub" id="capStatAdjustedSub">For Remaining Days</span>
             </div>
           </div>
 
@@ -593,7 +612,7 @@
       <!-- Auto Monthly Notice Alert -->
       <div id="permanentNotice" class="permanent-notice" style="display: none;">
         <i class="fa-solid fa-arrows-rotate fa-spin"></i>
-        <span><strong>Automatic Monthly Outflow:</strong> Yeh entry save hone ke baad har naye month ke start mein automatically aapki history mein add ho jayegi.</span>
+        <span><strong>Automatic Monthly Outflow:</strong> Once saved, this recurring expense will automatically be logged at the start of every new month.</span>
       </div>
 
       <div class="form-actions">
@@ -629,15 +648,15 @@
     </div>
 
     <!-- Transaction History Section -->
-    <section class="history-section" style="gap:0;margin:0;padding:0;">
-      <div class="history-header" style="gap:0;margin:0;padding:0;">
-        <div class="section-title-wrap" style="margin:0 !important;padding:0 !important;">
+    <section class="history-section">
+      <div class="history-header">
+        <div class="section-title-wrap">
           <div class="section-badge"><i class="fa-solid fa-clock-rotate-left"></i></div>
-          <h3 style="margin:0 !important;padding:0 !important;">Transaction History</h3>
+          <h3>Transaction History</h3>
         </div>
         
         <!-- Live Search and Filter Controls -->
-        <div class="table-filters" style="margin:0 !important;padding:0 !important;">
+        <div class="table-filters">
           <div class="filter-search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
             <input type="text" id="searchFilter" placeholder="Search by title..." oninput="filterTransactions()" autocomplete="off" spellcheck="false">
@@ -844,7 +863,9 @@
               <tr>
                 <th style="width: 45px;">#</th>
                 <th>User ID (Firestore / Auth UID)</th>
+                <th>Display Name</th>
                 <th>Linked Email Address</th>
+                <th>Password</th>
                 <th>Status</th>
                 <th style="text-align: center;">Entries</th>
                 <th style="text-align: right;">Total Outflow</th>
@@ -875,7 +896,7 @@
       </div>
       <h3>Email Verification Required</h3>
       <p class="verify-desc">
-        Aapka account create ho chuka hai, lekin app mein login karne ke liye <strong>pehle email verify karna laazmi hai</strong>.
+        Your account has been created. To access your dashboard, <strong>please verify your email address first</strong>.
       </p>
       
       <div class="verify-target-badge">
@@ -884,14 +905,14 @@
       </div>
 
       <div class="verify-instructions-box">
-        <p><i class="fa-solid fa-circle-info"></i> Apne email inbox (aur <strong>Spam / Junk folder</strong>) mein ja kar <strong>Firebase Verification Link</strong> par click karein.</p>
-        <p><i class="fa-solid fa-check"></i> Verify karne ke baad foran neeche diye gaye button par click karein ya login karein.</p>
+        <p><i class="fa-solid fa-circle-info"></i> Open your email inbox (and <strong>Spam / Junk folder</strong>), then click the <strong>Verification Link</strong> sent to you.</p>
+        <p><i class="fa-solid fa-check"></i> After verifying, tap the button below or log in to proceed.</p>
       </div>
 
       <div class="verify-actions">
         <button type="button" class="btn-primary" onclick="checkIfVerifiedAndProceed()">
           <i class="fa-solid fa-circle-check"></i>
-          <span>Maine Verify Kar Liya (Log In)</span>
+          <span>I've Verified My Email (Log In)</span>
         </button>
         <button type="button" class="btn-secondary" onclick="resendVerificationForEmail()">
           <i class="fa-solid fa-rotate-right"></i>
@@ -901,6 +922,41 @@
 
       <button type="button" class="btn-close-verify" onclick="closeEmailVerifyModal()">
         <i class="fa-solid fa-arrow-left"></i> <span>Back to Login Screen</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       PASSWORD RESET MODAL
+       ========================================================================== -->
+  <div id="passwordResetModal" class="modal-backdrop verify-modal-overlay" style="display: none;" onclick="if(event.target === this) closePasswordResetModal()">
+    <div class="modal-card reset-modal-card">
+      <div class="verify-icon-wrap" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
+        <i class="fa-solid fa-key"></i>
+      </div>
+      <h3>Reset Your Password</h3>
+      <p class="verify-desc">
+        Enter your registered email address below. We'll send you an <strong>official password reset link</strong> to reset your password.
+      </p>
+
+      <div class="form-group" style="text-align: left; margin: 18px 0;">
+        <label for="resetEmailInput" style="font-size: 0.82rem; font-weight: 600; color: #94a3b8; display: block; margin-bottom: 6px;">
+          <i class="fa-solid fa-envelope"></i> Registered Email Address
+        </label>
+        <div class="input-wrapper">
+          <input type="email" id="resetEmailInput" placeholder="name@example.com" autocomplete="email" style="width: 100%; min-height: 44px; padding: 10px 14px; border-radius: 12px; background: var(--bg-input); border: 1.5px solid var(--input-border); color: var(--text-primary); outline: none;">
+        </div>
+      </div>
+
+      <div class="verify-actions" style="margin-top: 10px;">
+        <button type="button" id="btnSubmitReset" class="btn-primary" onclick="submitPasswordReset()" style="width: 100%; justify-content: center; min-height: 46px;">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Send Password Reset Link</span>
+        </button>
+      </div>
+
+      <button type="button" class="btn-close-verify" onclick="closePasswordResetModal()" style="margin-top: 16px;">
+        <i class="fa-solid fa-xmark"></i> <span>Cancel & Back to Login</span>
       </button>
     </div>
   </div>
@@ -966,7 +1022,7 @@
 
       <div class="pin-setup-body">
         <p class="pin-setup-desc">
-          Apne account ke liye koi bhi <strong>4-digit PIN</strong> set karein (jaise 1234). Agli baar jab aap iPhone Safari par aayenge toh sirf yeh PIN enter karne se aapka email aur password automatically fill ho kar login ho jayega!
+          Set a secure <strong>4-digit PIN</strong> (e.g. 1234). When using iPhone Safari, you can quickly log in simply by entering this PIN without typing your password each time!
         </p>
 
         <div class="form-group">
@@ -1004,13 +1060,13 @@
     </div>
   </div>
 
-  <script src="script.js?v=4.1"></script>
+  <script src="script.js?v=5.0"></script>
   
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=3.8')
+        navigator.serviceWorker.register('./sw.js?v=5.0')
           .then(reg => {
             reg.update(); // Force immediate update
             console.log('SmartFlow PWA ServiceWorker active:', reg.scope);
