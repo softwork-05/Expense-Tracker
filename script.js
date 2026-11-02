@@ -728,7 +728,7 @@ function applyLanguage(lang) {
     selectType.options[2].text = dict.optPermanent;
   }
 
-  const labelDate = document.querySelector('.label-with-action label');
+  const labelDate = document.querySelector('label[for="transactionDate"]');
   if (labelDate) labelDate.innerHTML = `<i class="fa-regular fa-calendar-days"></i> ${dict.txDateLabel}`;
 
   const btnTodayPill = document.querySelector('.btn-today-pill');
