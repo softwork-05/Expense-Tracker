@@ -32,6 +32,19 @@ let currentTransactions = []; // Cached transactions for client-side search & fi
 let activeRecurringRules = []; // Cached recurring rules
 let activeMonthKey = getCurrentMonthKey(); // e.g. "2026-10" or "ALL"
 let currentSortDirection = 'desc'; // 'desc' = Newest date & time first, 'asc' = Oldest first
+let unsubscribeTransactions = null;
+let unsubscribeRecurringRules = null;
+
+function detachFirestoreListeners() {
+  if (typeof unsubscribeTransactions === 'function') {
+    unsubscribeTransactions();
+    unsubscribeTransactions = null;
+  }
+  if (typeof unsubscribeRecurringRules === 'function') {
+    unsubscribeRecurringRules();
+    unsubscribeRecurringRules = null;
+  }
+}
 
 // ==========================================================================
 // Admin & Platform Restrictions:
@@ -1510,6 +1523,7 @@ auth.onAuthStateChanged(user => {
     isInitialCheckDone = true;
     if (user && !getSessionFlag('smartflow_session_active')) {
       // Window was closed and reopened: force logout once
+      detachFirestoreListeners();
       auth.signOut().catch(() => {});
       return;
     }
@@ -1519,6 +1533,7 @@ auth.onAuthStateChanged(user => {
     // STRICT EMAIL VERIFICATION: Block unverified users from entering app
     if (!user.emailVerified) {
       currentUser = null;
+      detachFirestoreListeners();
       removeSessionFlag('smartflow_session_active');
       authSection.style.display = 'block';
       appSection.style.display = 'none';
@@ -1601,10 +1616,11 @@ auth.onAuthStateChanged(user => {
     updateAdminButtonVisibility();
 
     // Load user transactions and recurring rules
-    loadUserTransactions();
+    loadUserTransactions(user.uid);
     listenToRecurringRules(user.uid);
   } else {
     currentUser = null;
+    detachFirestoreListeners();
     currentTransactions = [];
     activeRecurringRules = [];
     authSection.style.display = 'block';
@@ -1999,7 +2015,8 @@ function resendVerificationEmail() {
 }
 
 function handleLogout() {
-  sessionStorage.removeItem('smartflow_session_active');
+  removeSessionFlag('smartflow_session_active');
+  detachFirestoreListeners();
   auth.signOut()
     .then(() => {
       showToast("You have been signed out.", "info");
@@ -2506,7 +2523,13 @@ async function checkAndApplyRecurringExpenses(userId) {
 }
 
 function listenToRecurringRules(userId) {
-  db.collection('users').doc(userId).collection('recurring_rules')
+  if (typeof unsubscribeRecurringRules === 'function') {
+    unsubscribeRecurringRules();
+    unsubscribeRecurringRules = null;
+  }
+  if (!userId) return;
+
+  unsubscribeRecurringRules = db.collection('users').doc(userId).collection('recurring_rules')
     .orderBy('createdAt', 'desc')
     .onSnapshot(snapshot => {
       activeRecurringRules = [];
@@ -2522,6 +2545,11 @@ function listenToRecurringRules(userId) {
       }
 
       renderRecurringList();
+    }, error => {
+      if (error.code === 'permission-denied' && (!currentUser || !auth.currentUser)) {
+        return;
+      }
+      console.error("Error loading recurring rules:", error);
     });
 }
 
@@ -2676,8 +2704,14 @@ async function addTransaction() {
 }
 
 // Real-time Firestore Listener
-function loadUserTransactions() {
-  db.collection('users').doc(currentUser.uid).collection('transactions')
+function loadUserTransactions(userId = currentUser?.uid) {
+  if (typeof unsubscribeTransactions === 'function') {
+    unsubscribeTransactions();
+    unsubscribeTransactions = null;
+  }
+  if (!userId) return;
+
+  unsubscribeTransactions = db.collection('users').doc(userId).collection('transactions')
     .onSnapshot(snapshot => {
       currentTransactions = [];
 
@@ -2695,6 +2729,10 @@ function loadUserTransactions() {
       // Update both summary statistics and table rows
       updateDashboardView();
     }, error => {
+      // Ignore expected permission-denied errors triggered while signing out
+      if (error.code === 'permission-denied' && (!currentUser || !auth.currentUser)) {
+        return;
+      }
       showToast("Error loading records: " + error.message, "error");
     });
 }
