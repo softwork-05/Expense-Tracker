@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smartflow-cache-v6.2';
+const CACHE_NAME = 'smartflow-cache-v6.4';
 const ASSETS = [
   './',
   './index.html',

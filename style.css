@@ -1997,110 +1997,323 @@ button {
 }
 
 /* Tier 3: Live Dynamic Search & Filter Sum Card */
-.history-search-summary-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
-  background: linear-gradient(145deg, rgba(16, 22, 36, 0.85), rgba(9, 13, 22, 0.95));
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: 14px;
-  margin-bottom: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+/* Search-Only Single-Row Total Amount Banner (Point 2: Only show during search & only total amount) */
+#historySearchSummary {
+  display: none !important; /* Hidden by default unless user is actively searching */
 }
 
-.hss-header {
+#historySearchSummary.active-search {
+  display: flex !important;
+}
+
+.history-search-summary-card {
+  padding: 12px 18px;
+  background: linear-gradient(135deg, rgba(16, 24, 40, 0.95), rgba(11, 16, 28, 0.98));
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.hss-search-single-wrap {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hss-search-label-group {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-}
-
-.hss-title {
-  font-size: 0.82rem;
-  font-weight: 700;
   color: #cbd5e1;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.hss-title i {
-  color: #38bdf8;
-}
-
-.hss-count-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.07);
-  font-family: var(--font-mono, monospace);
-  font-size: 0.75rem;
-  color: #94a3b8;
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
-.hss-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+.hss-search-icon {
+  color: #38bdf8;
+  font-size: 1rem;
 }
 
-@media (min-width: 680px) {
-  .hss-metrics {
-    grid-template-columns: repeat(4, 1fr);
-  }
+.hss-search-count-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
-.hss-metric-chip {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.hss-search-amount-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.hss-lbl {
-  font-size: 0.68rem;
+.hss-amount-label {
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: #94a3b8;
   font-weight: 700;
 }
 
-.hss-val {
-  font-size: 1.05rem;
+.hss-amount-value {
+  font-size: 1.25rem;
   font-weight: 800;
   font-family: var(--font-mono, monospace);
-  color: #ffffff;
-}
-
-.hss-total .hss-val {
   color: #38bdf8;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
 }
 
-.hss-income .hss-val {
-  color: #10b981;
+.hss-actions-amount-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.hss-expense .hss-val {
+.btn-hss-minus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: #f43f5e;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-hss-minus:hover {
+  background: rgba(244, 63, 94, 0.3);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.3);
+}
+
+/* In-App Inline Minus Drawer / Bar */
+.hss-inline-minus-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(56, 189, 248, 0.25);
+  animation: fadeInDown 0.2s ease-out;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hss-inline-inputs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.hss-inline-base-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #f8fafc;
+  font-size: 0.82rem;
+}
+
+.hss-chip-sub {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.hss-chip-amt {
+  font-family: var(--font-mono);
+  color: #38bdf8;
+  font-weight: 800;
+  margin-left: 2px;
+}
+
+.hss-inline-minus-icon {
+  color: #f43f5e;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.hss-inline-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 200px;
+  min-width: 170px;
+}
+
+.hss-inline-field-wrap input {
+  width: 100%;
+  height: 38px;
+  background: rgba(8, 12, 20, 0.85);
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  border-radius: 10px;
+  padding: 8px 34px 8px 12px;
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-family: inherit;
+  outline: none;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.6);
+  transition: all 0.2s ease;
+}
+
+.hss-inline-field-wrap input:focus {
+  border-color: #f43f5e;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.25), inset 0 2px 5px rgba(0,0,0,0.6);
+}
+
+.btn-clear-inline-minus {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.btn-clear-inline-minus:hover {
   color: #f43f5e;
 }
 
-.hss-net .hss-val {
-  color: #f59e0b;
+.btn-close-inline-drawer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.hss-val-net-pos {
-  color: #10b981 !important;
+.btn-close-inline-drawer:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
-.hss-val-net-neg {
-  color: #f43f5e !important;
+.hss-minus-calc-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.hss-minus-step {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hss-step-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.hss-step-label strong {
+  color: #f8fafc;
+}
+
+.hss-step-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: var(--font-mono, monospace);
+  color: #38bdf8;
+}
+
+.hss-step-val.hss-val-sub {
+  color: #f43f5e;
+}
+
+.hss-step-val.hss-val-diff {
+  color: #10b981;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.hss-minus-operator {
+  color: #64748b;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.btn-cancel-minus {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #94a3b8;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel-minus:hover {
+  background: rgba(244, 63, 94, 0.25);
+  color: #f43f5e;
+}
+
+.badge-search-term1 {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.badge-search-term2 {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #f43f5e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 6px;
 }
 
 /* User Name Edit Button & Pill */

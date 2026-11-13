@@ -769,29 +769,65 @@
         </div>
       </div>
 
-      <!-- 3. Dynamic Filter & Search Result Sum Banner (Point 2) -->
+      <!-- 3. Search Result Total Amount & Minus Comparison Banner (Shown ONLY during search) -->
       <div class="history-search-summary-card" id="historySearchSummary" style="display: none;">
-        <div class="hss-title">
-          <i class="fa-solid fa-calculator"></i>
-          <span id="hssLabel">Filtered Results:</span>
-          <strong id="hssMatchCount">0 entries</strong>
+        <div class="hss-search-single-wrap">
+          <div class="hss-search-label-group">
+            <i class="fa-solid fa-magnifying-glass hss-search-icon"></i>
+            <span id="hssLabel">Search Results</span>
+            <span class="hss-search-count-pill" id="hssMatchCount">0 records</span>
+          </div>
+          <div class="hss-actions-amount-group">
+            <div class="hss-search-amount-group" id="hssSearchAmountGroup">
+              <span class="hss-amount-label">Total Amount:</span>
+              <strong class="hss-amount-value" id="hssTotalSum">Rs. 0</strong>
+            </div>
+            <button type="button" class="btn-hss-minus" id="btnHssMinus" onclick="openInlineMinusBar()" title="Subtract another keyword (e.g. Car minus Fuel)">
+              <i class="fa-solid fa-minus"></i> <span>Minus Search</span>
+            </button>
+          </div>
         </div>
-        <div class="hss-metrics">
-          <div class="hss-metric-chip chip-total">
-            <span class="chip-label">Total Amount:</span>
-            <strong class="chip-val" id="hssTotalSum">Rs. 0</strong>
+
+        <!-- Inline In-App Minus Bar (No browser alert/prompt) -->
+        <div class="hss-inline-minus-panel" id="hssInlineMinusPanel" style="display: none;">
+          <div class="hss-inline-inputs-row">
+            <div class="hss-inline-base-chip">
+              <span class="hss-chip-sub">Base:</span>
+              <strong id="hssInlineBaseTerm">Keyword</strong>
+              <span class="hss-chip-amt" id="hssInlineBaseAmt">Rs. 0</span>
+            </div>
+            <span class="hss-inline-minus-icon"><i class="fa-solid fa-minus"></i></span>
+            <div class="hss-inline-field-wrap">
+              <input type="text" id="hssSecondKeywordInput" placeholder="Type keyword to minus (e.g. fuel)..." oninput="handleInlineSecondKeywordInput(this.value)" autocomplete="off">
+              <button type="button" class="btn-clear-inline-minus" onclick="clearInlineSecondKeyword()" title="Clear minus input">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <button type="button" class="btn-close-inline-drawer" onclick="closeInlineMinusDrawer()" title="Finish / Close Minus Comparison">
+              <i class="fa-solid fa-check"></i> Done
+            </button>
           </div>
-          <div class="hss-metric-chip chip-income" id="hssIncomeChip">
-            <span class="chip-label"><i class="fa-solid fa-arrow-down-left"></i> Inflow:</span>
-            <strong class="chip-val" id="hssIncomeSum">+Rs. 0</strong>
-          </div>
-          <div class="hss-metric-chip chip-expense" id="hssExpenseChip">
-            <span class="chip-label"><i class="fa-solid fa-arrow-up-right"></i> Outflow:</span>
-            <strong class="chip-val" id="hssExpenseSum">-Rs. 0</strong>
-          </div>
-          <div class="hss-metric-chip chip-net" id="hssNetChip">
-            <span class="chip-label"><i class="fa-solid fa-wallet"></i> Net:</span>
-            <strong class="chip-val" id="hssNetSum">Rs. 0</strong>
+
+          <!-- Live Minus Comparison Calculation Strip -->
+          <div class="hss-minus-calc-bar" id="hssMinusCalcBar" style="display: none;">
+            <div class="hss-minus-step">
+              <span class="hss-step-label">Base 1 (<strong id="hssMinusTerm1">Term 1</strong>):</span>
+              <strong class="hss-step-val" id="hssMinusSum1">Rs. 0</strong>
+            </div>
+            <div class="hss-minus-operator">
+              <i class="fa-solid fa-minus"></i>
+            </div>
+            <div class="hss-minus-step">
+              <span class="hss-step-label">Minus 2 (<strong id="hssMinusTerm2">Term 2</strong>):</span>
+              <strong class="hss-step-val hss-val-sub" id="hssMinusSum2">Rs. 0</strong>
+            </div>
+            <div class="hss-minus-operator">
+              <i class="fa-solid fa-equals"></i>
+            </div>
+            <div class="hss-minus-step hss-result-step">
+              <span class="hss-step-label">Net Difference:</span>
+              <strong class="hss-step-val hss-val-diff" id="hssMinusDiff">Rs. 0</strong>
+            </div>
           </div>
         </div>
       </div>

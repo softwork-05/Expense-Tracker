@@ -503,6 +503,13 @@ function toggleLanguage() {
 function applyLanguage(lang) {
   const dict = I18N[lang] || I18N.en;
 
+  // Sync language with Android Native Notification system
+  if (window.AndroidNotifications && typeof window.AndroidNotifications.setLanguage === 'function') {
+    try {
+      window.AndroidNotifications.setLanguage(lang);
+    } catch (e) {}
+  }
+
   // Language button text
   const langToggleText = document.getElementById('langToggleText');
   if (langToggleText) langToggleText.innerText = dict.langBtn;
@@ -1075,10 +1082,48 @@ function validateEmailLive() {
   }
 }
 
+function initDaily10PMReminder() {
+  if (window.AndroidNotifications && typeof window.AndroidNotifications.setLanguage === 'function') {
+    try {
+      window.AndroidNotifications.setLanguage(currentLang);
+    } catch (e) {}
+  }
+
+  if ("Notification" in window && Notification.permission === "default") {
+    try {
+      Notification.requestPermission().catch(() => {});
+    } catch (e) {}
+  }
+
+  // Periodic check around 10:00 PM (22:00)
+  setInterval(() => {
+    const now = new Date();
+    if (now.getHours() === 22 && now.getMinutes() === 0 && now.getSeconds() < 15) {
+      const isUrdu = currentLang === 'ur' || localStorage.getItem('smartflow_lang') === 'ur';
+      const title = isUrdu ? "اسمارٹ اخراجات منیجر (SmartFlow)" : "Smart Expense Manager";
+      const body = isUrdu 
+        ? "آج کے اخراجات درج کرنے کا وقت ہو گیا ہے! برائے مہربانی اپنا حساب کتاب مکمل کریں۔"
+        : "Time for expense management! Please record today's expenses and track your budget.";
+
+      if ("Notification" in window && Notification.permission === "granted") {
+        try {
+          new Notification(title, {
+            body: body,
+            icon: 'logo.png',
+            badge: 'favicon.png'
+          });
+        } catch (e) {}
+      }
+    }
+  }, 12000);
+}
+window.initDaily10PMReminder = initDaily10PMReminder;
+
 // Attach real-time input listeners & initialize UI enhancements
 document.addEventListener('DOMContentLoaded', () => {
   // Apply saved language (English or Roman Urdu)
   applyLanguage(currentLang);
+  initDaily10PMReminder();
 
   const emailInput = document.getElementById('authEmail');
   const pwdInput = document.getElementById('authPassword');
@@ -2889,21 +2934,128 @@ function filterTransactions() {
   updateDashboardView();
 }
 
+let isInlineMinusBarOpen = false;
+
 function clearSearchFilter() {
+  isInlineMinusBarOpen = false;
   const input = document.getElementById('searchFilter');
   if (input) {
     input.value = '';
     const clearBtn = document.getElementById('clearSearchBtn');
     if (clearBtn) clearBtn.style.display = 'none';
-    filterTransactions();
-    input.focus();
   }
+  const secondInput = document.getElementById('hssSecondKeywordInput');
+  if (secondInput) secondInput.value = '';
+
+  const drawer = document.getElementById('hssInlineMinusPanel');
+  if (drawer) drawer.style.display = 'none';
+
+  const btnMinus = document.getElementById('btnHssMinus');
+  if (btnMinus) btnMinus.style.display = 'inline-flex';
+
+  const searchSummaryCard = document.getElementById('historySearchSummary');
+  if (searchSummaryCard) {
+    searchSummaryCard.classList.remove('active-search');
+    searchSummaryCard.style.display = 'none';
+  }
+  filterTransactions();
+  if (input) input.focus();
 }
 
 function handleSearchInput() {
   filterTransactions();
 }
 window.handleSearchInput = handleSearchInput;
+
+function openInlineMinusBar() {
+  const input = document.getElementById('searchFilter');
+  if (!input) return;
+  const currentVal = input.value.trim();
+  const isUrdu = currentLang === 'ur';
+
+  if (!currentVal) {
+    showToast(isUrdu ? "Pehle koi pehla keyword search karein (maslan: car)" : "Please search a base keyword first (e.g. car)", "info");
+    input.focus();
+    return;
+  }
+
+  isInlineMinusBarOpen = true;
+  let baseTerm = currentVal;
+  let secondTerm = '';
+
+  if (currentVal.includes('-')) {
+    const parts = currentVal.split('-');
+    baseTerm = parts[0].trim();
+    secondTerm = parts[1] ? parts[1].trim() : '';
+  }
+
+  const drawer = document.getElementById('hssInlineMinusPanel');
+  const baseTermEl = document.getElementById('hssInlineBaseTerm');
+  const secondInput = document.getElementById('hssSecondKeywordInput');
+  const btnMinus = document.getElementById('btnHssMinus');
+
+  if (drawer) drawer.style.display = 'flex';
+  if (baseTermEl) baseTermEl.innerText = baseTerm;
+  if (btnMinus) btnMinus.style.display = 'none';
+
+  if (secondInput) {
+    secondInput.value = secondTerm;
+    secondInput.focus();
+  }
+
+  filterTransactions();
+}
+window.openInlineMinusBar = openInlineMinusBar;
+window.toggleSearchMinusMode = openInlineMinusBar;
+
+function handleInlineSecondKeywordInput(val) {
+  const mainInput = document.getElementById('searchFilter');
+  if (!mainInput) return;
+  let currentVal = mainInput.value.trim();
+  let baseTerm = currentVal;
+  if (currentVal.includes('-')) {
+    baseTerm = currentVal.split('-')[0].trim();
+  }
+
+  const cleanSecond = (val || '').trim();
+  if (cleanSecond) {
+    mainInput.value = `${baseTerm} - ${cleanSecond}`;
+  } else {
+    mainInput.value = baseTerm;
+  }
+  filterTransactions();
+}
+window.handleInlineSecondKeywordInput = handleInlineSecondKeywordInput;
+
+function clearInlineSecondKeyword() {
+  const secondInput = document.getElementById('hssSecondKeywordInput');
+  if (secondInput) {
+    secondInput.value = '';
+    handleInlineSecondKeywordInput('');
+    secondInput.focus();
+  }
+}
+window.clearInlineSecondKeyword = clearInlineSecondKeyword;
+
+function closeInlineMinusDrawer() {
+  isInlineMinusBarOpen = false;
+  const drawer = document.getElementById('hssInlineMinusPanel');
+  if (drawer) drawer.style.display = 'none';
+
+  const btnMinus = document.getElementById('btnHssMinus');
+  if (btnMinus) btnMinus.style.display = 'inline-flex';
+
+  const mainInput = document.getElementById('searchFilter');
+  if (mainInput && mainInput.value.includes('-')) {
+    mainInput.value = mainInput.value.split('-')[0].trim();
+  }
+  const secondInput = document.getElementById('hssSecondKeywordInput');
+  if (secondInput) secondInput.value = '';
+
+  filterTransactions();
+}
+window.closeInlineMinusDrawer = closeInlineMinusDrawer;
+window.resetSearchMinusMode = closeInlineMinusDrawer;
 
 function renderTransactionsTable(sourceTransactions) {
   const baseList = sourceTransactions || currentTransactions.filter(item => {
@@ -2917,16 +3069,60 @@ function renderTransactionsTable(sourceTransactions) {
   const table = document.getElementById('historyTable');
   const emptyState = document.getElementById('emptyState');
   const tableWrapper = document.getElementById('transactionsMainTable');
-  const searchQuery = (document.getElementById('searchFilter')?.value || '').toLowerCase().trim();
+  const rawSearch = (document.getElementById('searchFilter')?.value || '').trim();
   const typeFilter = document.getElementById('typeFilter')?.value || 'ALL';
 
   table.innerHTML = '';
 
-  const filtered = baseList.filter(item => {
-    const matchesSearch = !searchQuery || (item.title && item.title.toLowerCase().includes(searchQuery));
-    const matchesType = typeFilter === 'ALL' || item.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
+  // Check if Search Minus Mode is active (e.g. "car - fuel")
+  let isMinusMode = false;
+  let term1 = '';
+  let term2 = '';
+  let sumTerm1 = 0;
+  let sumTerm2 = 0;
+  let minusDiff = 0;
+
+  if (rawSearch.includes('-') && !rawSearch.startsWith('-')) {
+    const parts = rawSearch.split('-');
+    if (parts.length >= 2 && parts[0].trim().length > 0 && parts[1].trim().length > 0) {
+      isMinusMode = true;
+      term1 = parts[0].trim().toLowerCase();
+      term2 = parts[1].trim().toLowerCase();
+    }
+  }
+
+  let filtered = [];
+
+  if (isMinusMode) {
+    baseList.forEach(item => {
+      const titleLower = (item.title || '').toLowerCase();
+      const matchesType = typeFilter === 'ALL' || item.type === typeFilter;
+      if (!matchesType) return;
+
+      const inTerm1 = titleLower.includes(term1);
+      const inTerm2 = titleLower.includes(term2);
+
+      if (inTerm1 || inTerm2) {
+        const itemCopy = { ...item };
+        if (inTerm1) {
+          sumTerm1 += (Number(item.amount) || 0);
+          itemCopy._minusTag = 'term1';
+        } else {
+          sumTerm2 += (Number(item.amount) || 0);
+          itemCopy._minusTag = 'term2';
+        }
+        filtered.push(itemCopy);
+      }
+    });
+    minusDiff = sumTerm1 - sumTerm2;
+  } else {
+    const searchQuery = rawSearch.toLowerCase();
+    filtered = baseList.filter(item => {
+      const matchesSearch = !searchQuery || (item.title && item.title.toLowerCase().includes(searchQuery));
+      const matchesType = typeFilter === 'ALL' || item.type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  }
 
   // Calculate live dynamic sums for matched entries
   let filteredIncome = 0;
@@ -2942,41 +3138,103 @@ function renderTransactionsTable(sourceTransactions) {
   const filteredGross = filteredIncome + filteredExpense;
   const filteredNet = filteredIncome - filteredExpense;
 
-  // Update History Row Count Badge
+  // Update History Row Count Badge (only number to avoid duplication with "Records" tag)
   const rowCountBadge = document.getElementById('historyRowCount');
   if (rowCountBadge) {
-    rowCountBadge.innerText = `${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`;
+    rowCountBadge.innerText = filtered.length;
   }
 
-  // Update Dynamic Search & Filter Sum Card
+  // Update Dynamic Search Sum Card - SHOWN ONLY WHEN ACTIVELY SEARCHING (Only Total Amount shown)
   const searchSummaryCard = document.getElementById('historySearchSummary');
   const hssLabel = document.getElementById('hssLabel');
   const hssMatchCount = document.getElementById('hssMatchCount');
   const hssTotalSum = document.getElementById('hssTotalSum');
-  const hssIncomeSum = document.getElementById('hssIncomeSum');
-  const hssExpenseSum = document.getElementById('hssExpenseSum');
-  const hssNetSum = document.getElementById('hssNetSum');
+  const hssMinusCalcBar = document.getElementById('hssMinusCalcBar');
+  const btnHssMinus = document.getElementById('btnHssMinus');
 
   if (searchSummaryCard) {
-    searchSummaryCard.style.display = 'flex';
-    if (hssMatchCount) hssMatchCount.innerText = `${filtered.length} item${filtered.length === 1 ? '' : 's'}`;
-    if (hssTotalSum) hssTotalSum.innerText = 'Rs. ' + filteredGross.toLocaleString();
-    if (hssIncomeSum) hssIncomeSum.innerText = '+ Rs. ' + filteredIncome.toLocaleString();
-    if (hssExpenseSum) hssExpenseSum.innerText = '- Rs. ' + filteredExpense.toLocaleString();
-    if (hssNetSum) {
-      const netPrefix = filteredNet > 0 ? '+ ' : (filteredNet < 0 ? '- ' : '');
-      hssNetSum.innerText = `${netPrefix}Rs. ${Math.abs(filteredNet).toLocaleString()}`;
-      hssNetSum.className = filteredNet >= 0 ? 'hss-val hss-val-net-pos' : 'hss-val hss-val-net-neg';
-    }
+    if (rawSearch.length > 0) {
+      searchSummaryCard.classList.add('active-search');
+      searchSummaryCard.style.display = 'flex';
 
-    if (hssLabel) {
-      if (searchQuery) {
-        hssLabel.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Matched: "<strong>${escapeHtml(searchQuery)}</strong>" (${filtered.length} entries sum):`;
-      } else if (typeFilter !== 'ALL') {
-        hssLabel.innerHTML = `<i class="fa-solid fa-filter"></i> Category: <strong>${escapeHtml(typeFilter)}</strong> (${filtered.length} entries sum):`;
-      } else {
-        hssLabel.innerHTML = `<i class="fa-solid fa-calculator"></i> Active Log Total (${filtered.length} records):`;
+      if (hssMatchCount) {
+        hssMatchCount.innerText = `${filtered.length} ${filtered.length === 1 ? 'record' : 'records'}`;
       }
+
+      if (isMinusMode) {
+        // MINUS COMPARISON MODE ACTIVE (e.g. car - fuel)
+        if (hssLabel) {
+          hssLabel.innerHTML = `<i class="fa-solid fa-code-compare"></i> Minus Comparison:`;
+        }
+        if (hssTotalSum) {
+          hssTotalSum.innerText = 'Rs. ' + (sumTerm1 + sumTerm2).toLocaleString();
+        }
+        if (btnHssMinus) btnHssMinus.style.display = 'none';
+
+        // Keep inline drawer open and sync values
+        const drawer = document.getElementById('hssInlineMinusPanel');
+        if (drawer) drawer.style.display = 'flex';
+        const baseTermEl = document.getElementById('hssInlineBaseTerm');
+        const baseAmtEl = document.getElementById('hssInlineBaseAmt');
+        if (baseTermEl) baseTermEl.innerText = term1;
+        if (baseAmtEl) baseAmtEl.innerText = 'Rs. ' + sumTerm1.toLocaleString();
+
+        const secondInput = document.getElementById('hssSecondKeywordInput');
+        if (secondInput && document.activeElement !== secondInput) {
+          secondInput.value = term2;
+        }
+
+        if (hssMinusCalcBar) {
+          hssMinusCalcBar.style.display = 'flex';
+          const t1El = document.getElementById('hssMinusTerm1');
+          const s1El = document.getElementById('hssMinusSum1');
+          const t2El = document.getElementById('hssMinusTerm2');
+          const s2El = document.getElementById('hssMinusSum2');
+          const diffEl = document.getElementById('hssMinusDiff');
+
+          if (t1El) t1El.innerText = term1;
+          if (s1El) s1El.innerText = 'Rs. ' + sumTerm1.toLocaleString();
+          if (t2El) t2El.innerText = term2;
+          if (s2El) s2El.innerText = 'Rs. ' + sumTerm2.toLocaleString();
+          if (diffEl) {
+            const diffSign = minusDiff < 0 ? '-' : '';
+            diffEl.innerText = `${diffSign}Rs. ${Math.abs(minusDiff).toLocaleString()}`;
+            diffEl.className = minusDiff >= 0 ? 'hss-step-val hss-val-diff' : 'hss-step-val hss-val-sub';
+          }
+        }
+      } else {
+        // STANDARD SEARCH MODE (ONLY TOTAL AMOUNT SHOWN)
+        if (hssMinusCalcBar) hssMinusCalcBar.style.display = 'none';
+
+        const drawer = document.getElementById('hssInlineMinusPanel');
+        if (isInlineMinusBarOpen) {
+          if (drawer) drawer.style.display = 'flex';
+          const baseTermEl = document.getElementById('hssInlineBaseTerm');
+          const baseAmtEl = document.getElementById('hssInlineBaseAmt');
+          if (baseTermEl) baseTermEl.innerText = rawSearch;
+          if (baseAmtEl) baseAmtEl.innerText = 'Rs. ' + filteredGross.toLocaleString();
+          if (btnHssMinus) btnHssMinus.style.display = 'none';
+        } else {
+          if (drawer) drawer.style.display = 'none';
+          if (btnHssMinus) btnHssMinus.style.display = 'inline-flex';
+        }
+
+        if (hssTotalSum) {
+          hssTotalSum.innerText = 'Rs. ' + filteredGross.toLocaleString();
+        }
+        if (hssLabel) {
+          hssLabel.innerHTML = currentLang === 'ur' 
+            ? `Talaash: "<strong>${escapeHtml(rawSearch)}</strong>"` 
+            : `Search: "<strong>${escapeHtml(rawSearch)}</strong>"`;
+        }
+      }
+    } else {
+      // Hidden when not actively searching!
+      searchSummaryCard.classList.remove('active-search');
+      searchSummaryCard.style.display = 'none';
+      if (hssMinusCalcBar) hssMinusCalcBar.style.display = 'none';
+      const drawer = document.getElementById('hssInlineMinusPanel');
+      if (drawer) drawer.style.display = 'none';
     }
   }
 
@@ -2987,8 +3245,8 @@ function renderTransactionsTable(sourceTransactions) {
       emptyState.style.display = 'block';
       const emptyP = emptyState.querySelector('p');
       if (emptyP) {
-        if (searchQuery) {
-          emptyP.innerText = isUrdu ? `"${searchQuery}" ke liye koi transaction nahi mili.` : `No transactions found matching "${searchQuery}".`;
+        if (rawSearch) {
+          emptyP.innerText = isUrdu ? `"${rawSearch}" ke liye koi transaction nahi mili.` : `No transactions found matching "${rawSearch}".`;
         } else if (activeMonthKey === 'ALL') {
           emptyP.innerText = isUrdu ? "Tamam records me koi transaction nahi mili." : "No transactions found across all time.";
         } else {
@@ -3027,10 +3285,19 @@ function renderTransactionsTable(sourceTransactions) {
       }
     }
 
+    let minusBadge = '';
+    if (isMinusMode && item._minusTag) {
+      if (item._minusTag === 'term1') {
+        minusBadge = `<span class="badge-search-term1" title="Base term">${escapeHtml(term1)}</span>`;
+      } else {
+        minusBadge = `<span class="badge-search-term2" title="Subtracted term">-${escapeHtml(term2)}</span>`;
+      }
+    }
+
     const row = table.insertRow();
     row.innerHTML = `
       <td data-label="${labelDate}">${item.timestamp || 'Just now'}</td>
-      <td data-label="${labelTitle}"><strong>${escapeHtml(item.title)}</strong></td>
+      <td data-label="${labelTitle}"><strong>${escapeHtml(item.title)}</strong> ${minusBadge}</td>
       <td data-label="${labelCat}">${typeTag}</td>
       <td data-label="${labelAmount}" class="td-amount ${amountClass}">${amountPrefix}Rs. ${(item.amount || 0).toLocaleString()}</td>
       <td data-label="${labelAction}" style="text-align: center;">

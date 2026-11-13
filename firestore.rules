@@ -1,11 +1,88 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allows any authenticated user to read and write their data
-    // Admin (hyjano040@gmail.com) can also inspect all records
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    // 1. Admin Verification: Check by Admin Email (hyjano040@gmail.com) or optional Admin UID
+    function isAdmin() {
+      return request.auth != null && (
+        (request.auth.token.email != null && request.auth.token.email.lower() == "hyjano040@gmail.com")
+        // Optional: Aap apni Firebase Auth wali Admin UID bhi yahan daal sakte hain:
+        // || request.auth.uid == "YAHAN_APNI_ADMIN_UID_DAALEIN"
+      );
     }
+
+    // 2. Is Logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 3. Is Data Owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // =========================================================================
+    // USERS COLLECTION & SUBCOLLECTIONS (Main App Database)
+    // =========================================================================
+
+    // User Profile Document (users/{userId})
+    match /users/{userId} {
+      // User sirf apna profile read/write kar sakta hai; Admin sabka read/write kar sakta hai
+      allow read, write: if isOwner(userId) || isAdmin();
+
+      // Transactions Subcollection (users/{userId}/transactions/{txId})
+      match /transactions/{txId} {
+        // User sirf apni transactions read, create, update, delete kar sakta hai
+        // Admin poori directory inspect ya manage kar sakta hai
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Recurring Rules Subcollection (users/{userId}/recurring_rules/{ruleId})
+      match /recurring_rules/{ruleId} {
+        // User sirf apne fixed rules read/write kar sakta hai
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // =========================================================================
+    // COLLECTION GROUP: transactions
+    // (Used by Admin Panel: db.collectionGroup('transactions').get())
+    // =========================================================================
+    match /{path=**}/transactions/{txId} {
+      // Admin sabhi users ki transactions read kar sakta hai
+      // User sirf apni transactions read kar sakta hai
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+
+    // =========================================================================
+    // ALL TRANSACTIONS (Master Sync & Ledger Mirror)
+    // =========================================================================
+    match /all_transactions/{txId} {
+      // Authenticated user apni transaction create ya update kar sakta hai
+      // Admin master ledger ke liye sabhi records read kar sakta hai
+      allow create, update: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || 
+        request.resource.data.deletedByUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // DELETED TRANSACTIONS (Admin Audit Trail Log)
+    // =========================================================================
+    match /deleted_transactions/{txId} {
+      // User jab delete karta hai toh audit record create kar sakta hai
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid ||
+        request.resource.data.deletedByUid == request.auth.uid ||
+        isAdmin()
+      );
+      // Sirf Admin hi deleted records ka audit log read ya inspect kar sakta hai
+      allow read, write: if isAdmin();
+    }
+
   }
 }
 
