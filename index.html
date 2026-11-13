@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Smart Expense & Income Tracker</title>
+  <title>Smart Expense Manager</title>
   
   <!-- PWA & Mobile Web App Meta Tags -->
-  <meta name="theme-color" content="#0B0F19">
+  <meta name="theme-color" content="#07090E">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SmartFlow">
+  <meta name="apple-mobile-web-app-title" content="Smart Expense Manager">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
   
-  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <!-- Google Fonts: Orbitron, Plus Jakarta Sans & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Orbitron:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -26,8 +26,8 @@
   <link rel="apple-touch-icon" href="logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
   
-  <!-- Custom Modern CSS (v4.0 Ultra Attractive & Responsive) -->
-  <link rel="stylesheet" href="style.css?v=5.2">
+  <!-- Custom Modern CSS (v6.1 Luxury Obsidian 3D + Vault Opening) -->
+  <link rel="stylesheet" href="style.css?v=6.1">
   
   <!-- Firebase SDKs (v10 Compat Mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -43,10 +43,37 @@
   <div id="customCursorDot" class="custom-cursor-dot"></div>
   <div id="customCursorRing" class="custom-cursor-ring"></div>
 
-  <!-- Ambient Background Glows -->
-  <div class="ambient-glow glow-1"></div>
-  <div class="ambient-glow glow-2"></div>
-  <div class="ambient-glow glow-3"></div>
+  <!-- Architectural Obsidian Dark Grid & Ambient Spotlights -->
+  <div class="obsidian-grid-overlay" aria-hidden="true"></div>
+  <div class="ambient-glow glow-1" aria-hidden="true"></div>
+  <div class="ambient-glow glow-2" aria-hidden="true"></div>
+  <div class="ambient-glow glow-3" aria-hidden="true"></div>
+
+  <!-- 3D Vault Door Opening Animation Overlay (Plays on Login) -->
+  <div id="vaultUnlockOverlay" class="vault-unlock-overlay" aria-hidden="true" style="display: none;">
+    <div class="vault-unlock-chamber">
+      <div class="vault-light-spill"></div>
+      <div class="vault-heavy-frame">
+        <div class="vault-heavy-door" id="vaultDoorLeaf">
+          <div class="vd-bolt b-top"></div>
+          <div class="vd-bolt b-right"></div>
+          <div class="vd-bolt b-bottom"></div>
+          <div class="vd-bolt b-left"></div>
+          <div class="vd-ring-outer"></div>
+          <div class="vd-ring-inner"></div>
+          <div class="vd-wheel">
+            <span class="vd-spoke s1"></span>
+            <span class="vd-spoke s2"></span>
+            <span class="vd-spoke s3"></span>
+            <div class="vd-hub">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+          </div>
+          <div class="vd-status-label" id="vaultDoorStatusLabel">UNLOCKING VAULT...</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
@@ -65,11 +92,35 @@
   <!-- 1. LOGIN / SIGNUP SCREEN -->
   <div id="authSection" class="container auth-card">
     <div class="brand-header">
-      <div class="brand-logo">
-        <img src="logo.png" alt="SmartFlow Logo" class="brand-logo-img">
+      <div class="brand-logo vault-emblem-3d">
+        <img src="logo.png" alt="SmartFlow Logo" class="brand-logo-img" style="display: none;">
+        <svg viewBox="0 0 64 64" class="vault-shield-svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="authGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FFFBEB"/>
+              <stop offset="35%" stop-color="#F59E0B"/>
+              <stop offset="70%" stop-color="#D4AF37"/>
+              <stop offset="100%" stop-color="#78350F"/>
+            </linearGradient>
+            <linearGradient id="authCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#A5F3FC"/>
+              <stop offset="55%" stop-color="#38BDF8"/>
+              <stop offset="100%" stop-color="#0284C7"/>
+            </linearGradient>
+          </defs>
+          <path d="M32 4 L56 14 V32 C56 46.5 45.2 56.5 32 60 C18.8 56.5 8 46.5 8 32 V14 Z" fill="#0B0F19" stroke="url(#authGoldGrad)" stroke-width="2.6"/>
+          <path d="M32 10 L50 18 V32 C50 43 41.8 50.8 32 53.8 C22.2 50.8 14 43 14 32 V18 Z" fill="rgba(15, 23, 42, 0.9)" stroke="url(#authCyanGrad)" stroke-width="1.4" stroke-opacity="0.7"/>
+          <circle cx="32" cy="31" r="10.5" fill="none" stroke="url(#authGoldGrad)" stroke-width="2.4"/>
+          <circle cx="32" cy="31" r="4.5" fill="url(#authCyanGrad)"/>
+          <path d="M32 17 V22 M32 40 V45 M18 31 H23 M41 31 H46" stroke="url(#authGoldGrad)" stroke-width="2" stroke-linecap="round"/>
+        </svg>
       </div>
-      <h2>SmartFlow</h2>
-      <p class="brand-subtitle">Smart Income & Expense Management</p>
+      <h2 class="vaultix-gold-title">SmartFlow</h2>
+      <p class="brand-subtitle">Smart Expense Manager</p>
+      <div class="vault-status-pill">
+        <span class="vault-status-dot"></span>
+        <span>VAULT PROTECTED &bull; REAL-TIME SYNC</span>
+      </div>
     </div>
 
     <!-- Auth Mode Switcher Tabs -->
@@ -215,11 +266,37 @@
     <!-- Top Header Bar -->
     <header class="header-bar">
       <div class="brand-identity">
-        <div class="brand-logo-small">
-          <img src="logo.png" alt="SmartFlow Logo" class="brand-logo-img-small">
+        <div class="brand-logo-small vault-emblem-3d-sm">
+          <img src="logo.png" alt="SmartFlow Logo" class="brand-logo-img-small" style="display: none;">
+          <svg viewBox="0 0 64 64" class="vault-shield-svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="hdrGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FFFBEB"/>
+                <stop offset="40%" stop-color="#F59E0B"/>
+                <stop offset="75%" stop-color="#D4AF37"/>
+                <stop offset="100%" stop-color="#78350F"/>
+              </linearGradient>
+              <linearGradient id="hdrCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#A5F3FC"/>
+                <stop offset="55%" stop-color="#38BDF8"/>
+                <stop offset="100%" stop-color="#0284C7"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 4 L56 14 V32 C56 46.5 45.2 56.5 32 60 C18.8 56.5 8 46.5 8 32 V14 Z" fill="#0B0F19" stroke="url(#hdrGoldGrad)" stroke-width="2.8"/>
+            <path d="M32 10 L50 18 V32 C50 43 41.8 50.8 32 53.8 C22.2 50.8 14 43 14 32 V18 Z" fill="rgba(15, 23, 42, 0.9)" stroke="url(#hdrCyanGrad)" stroke-width="1.5" stroke-opacity="0.75"/>
+            <circle cx="32" cy="31" r="10.5" fill="none" stroke="url(#hdrGoldGrad)" stroke-width="2.4"/>
+            <circle cx="32" cy="31" r="4.5" fill="url(#hdrCyanGrad)"/>
+            <path d="M32 17 V22 M32 40 V45 M18 31 H23 M41 31 H46" stroke="url(#hdrGoldGrad)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
         </div>
-        <div>
-          <h2>SmartFlow Tracker</h2>
+        <div class="brand-title-stack">
+          <div class="brand-title-row">
+            <h2 class="vaultix-gold-title-sm">SmartFlow Tracker</h2>
+            <span class="vault-status-pill">
+              <span class="vault-status-dot"></span>
+              <span>VAULT PROTECTED &bull; REAL-TIME SYNC</span>
+            </span>
+          </div>
           <span class="header-subtitle">Real-time Cloud Sync</span>
         </div>
       </div>
@@ -238,7 +315,10 @@
           
           <div class="user-info-col">
             <div class="user-name-row">
-              <span id="userDisplayNameTag" class="user-display-name">User Name</span>
+              <span id="userDisplayNameTag" class="user-display-name" onclick="promptEditMyDisplayName()" title="Click to edit your name">User Name</span>
+              <button type="button" class="btn-edit-my-name" id="btnEditMyName" onclick="promptEditMyDisplayName()" title="Edit / Set Your Display Name">
+                <i class="fa-solid fa-pen"></i>
+              </button>
               <span id="userVerificationBadge" class="badge-verification unverified" onclick="handleBadgeClick()" title="Checking status...">
                 <i class="fa-solid fa-clock"></i> Unverified
               </span>
@@ -648,33 +728,71 @@
 
     <!-- Transaction History Section -->
     <section class="history-section">
-      <div class="history-header">
+      <!-- 1. Dedicated Top Header Bar (Title, Record Count, Export Excel) -->
+      <div class="history-header-top">
         <div class="section-title-wrap">
           <div class="section-badge"><i class="fa-solid fa-clock-rotate-left"></i></div>
-          <h3>Transaction History</h3>
+          <div class="history-title-info">
+            <h3 id="historySectionTitle">Transaction History</h3>
+            <span class="history-subtitle-meta" id="historySubtitle">Review, track, and search all your entries</span>
+          </div>
         </div>
-        
-        <!-- Live Search and Filter Controls -->
-        <div class="table-filters">
-          <div class="filter-search-box">
-            <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" id="searchFilter" placeholder="Search by title..." oninput="filterTransactions()" autocomplete="off" spellcheck="false">
-            <button type="button" class="btn-clear-search" id="clearSearchBtn" onclick="clearSearchFilter()" style="display: none;" title="Clear Search">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
+
+        <div class="history-header-actions">
+          <div class="history-count-badge" id="historyCountBadge">
+            <i class="fa-solid fa-receipt"></i>
+            <span><strong id="historyRowCount">0</strong> Records</span>
           </div>
-          <div class="filter-select-box">
-            <select id="typeFilter" onchange="filterTransactions()">
-              <option value="ALL">All Categories</option>
-              <option value="IN">💚 Income Only</option>
-              <option value="OUT">💔 Expense Only</option>
-              <option value="PERMANENT">🔒 Fixed Outflow Only</option>
-            </select>
-          </div>
-          <button type="button" class="btn-export-excel" onclick="exportTransactionsToExcel()" title="Download Modernized Excel Spreadsheet (.xlsx)">
+          <button type="button" class="btn-export-excel" id="btnExportExcelHistory" onclick="exportTransactionsToExcel()" title="Download Modernized Excel Spreadsheet (.xlsx)">
             <i class="fa-solid fa-file-excel"></i>
             <span>Export Excel</span>
           </button>
+        </div>
+      </div>
+      
+      <!-- 2. Dedicated Filter & Search Toolbar -->
+      <div class="table-filters-toolbar">
+        <div class="filter-search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchFilter" placeholder="Search by title, keyword, or amount..." oninput="filterTransactions()" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn-clear-search" id="clearSearchBtn" onclick="clearSearchFilter()" style="display: none;" title="Clear Search">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="filter-select-box">
+          <select id="typeFilter" onchange="filterTransactions()">
+            <option value="ALL">All Categories</option>
+            <option value="IN">💚 Income Only</option>
+            <option value="OUT">💔 Expense Only</option>
+            <option value="PERMANENT">🔒 Fixed Outflow Only</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 3. Dynamic Filter & Search Result Sum Banner (Point 2) -->
+      <div class="history-search-summary-card" id="historySearchSummary" style="display: none;">
+        <div class="hss-title">
+          <i class="fa-solid fa-calculator"></i>
+          <span id="hssLabel">Filtered Results:</span>
+          <strong id="hssMatchCount">0 entries</strong>
+        </div>
+        <div class="hss-metrics">
+          <div class="hss-metric-chip chip-total">
+            <span class="chip-label">Total Amount:</span>
+            <strong class="chip-val" id="hssTotalSum">Rs. 0</strong>
+          </div>
+          <div class="hss-metric-chip chip-income" id="hssIncomeChip">
+            <span class="chip-label"><i class="fa-solid fa-arrow-down-left"></i> Inflow:</span>
+            <strong class="chip-val" id="hssIncomeSum">+Rs. 0</strong>
+          </div>
+          <div class="hss-metric-chip chip-expense" id="hssExpenseChip">
+            <span class="chip-label"><i class="fa-solid fa-arrow-up-right"></i> Outflow:</span>
+            <strong class="chip-val" id="hssExpenseSum">-Rs. 0</strong>
+          </div>
+          <div class="hss-metric-chip chip-net" id="hssNetChip">
+            <span class="chip-label"><i class="fa-solid fa-wallet"></i> Net:</span>
+            <strong class="chip-val" id="hssNetSum">Rs. 0</strong>
+          </div>
         </div>
       </div>
 
@@ -780,17 +898,31 @@
             <strong id="adminTotalExpense" class="admin-metric-val text-expense">Rs. 0</strong>
           </div>
         </div>
+
+        <div class="admin-metric-card">
+          <div class="admin-metric-icon icon-deleted">
+            <i class="fa-solid fa-trash-can"></i>
+          </div>
+          <div class="admin-metric-info">
+            <span class="admin-metric-label">Deleted Audit Records</span>
+            <strong id="adminTotalDeleted" class="admin-metric-val text-deleted">0</strong>
+          </div>
+        </div>
       </div>
 
       <!-- Admin Navigation Tabs -->
       <div class="admin-tab-nav">
         <button type="button" class="admin-tab-btn active" id="adminTabLedgerBtn" onclick="switchAdminTab('ledger')">
           <i class="fa-solid fa-receipt"></i>
-          <span>Transactions Ledger (<strong id="adminTabTxCount">0</strong>)</span>
+          <span>Active Ledger (<strong id="adminTabTxCount">0</strong>)</span>
+        </button>
+        <button type="button" class="admin-tab-btn" id="adminTabDeletedBtn" onclick="switchAdminTab('deleted')">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>Deleted Records (<strong id="adminTabDeletedCount">0</strong>)</span>
         </button>
         <button type="button" class="admin-tab-btn" id="adminTabUsersBtn" onclick="switchAdminTab('users')">
           <i class="fa-solid fa-users-gear"></i>
-          <span>User Directory & Accounts (<strong id="adminTabUserCount">0</strong>)</span>
+          <span>User Directory &amp; Accounts (<strong id="adminTabUserCount">0</strong>)</span>
         </button>
       </div>
 
@@ -838,7 +970,43 @@
         </div>
       </div>
 
-      <!-- VIEW 2: USER DIRECTORY & EMAIL LINKING -->
+      <!-- VIEW 2: DELETED TRANSACTIONS AUDIT LOG -->
+      <div id="adminDeletedView" class="admin-view-container" style="display: none;">
+        <div class="admin-controls-bar">
+          <div class="admin-search-wrapper">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="adminDeletedSearchInput" placeholder="Filter deleted records by user, title, or amount..." oninput="filterAdminDeletedTable()" autocomplete="off" spellcheck="false">
+            <button type="button" class="btn-clear-search" id="clearAdminDeletedSearchBtn" onclick="clearAdminDeletedSearchFilter()" style="display: none;" title="Clear Search">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <button type="button" class="btn-admin-refresh" onclick="loadAdminAllTransactions(true)" title="Refresh Deleted Records">
+            <i class="fa-solid fa-rotate"></i> Refresh
+          </button>
+        </div>
+
+        <div class="admin-table-scroll">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width: 45px;">#</th>
+                <th>Deleted Record (User)</th>
+                <th>Original Date</th>
+                <th>Deleted At &amp; By</th>
+                <th>Title / Source</th>
+                <th>Category</th>
+                <th style="text-align: right;">Amount</th>
+                <th style="text-align: center;">Audit Status</th>
+              </tr>
+            </thead>
+            <tbody id="adminDeletedTransactionsTableBody">
+              <!-- Dynamically populated deleted rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW 3: USER DIRECTORY & EMAIL LINKING -->
       <div id="adminUsersView" class="admin-view-container" style="display: none;">
         <div class="admin-controls-bar">
           <div class="admin-search-wrapper">
@@ -1059,13 +1227,97 @@
     </div>
   </div>
 
-  <script src="script.js?v=5.2"></script>
+  <script src="script.js?v=6.1"></script>
+
+  <!-- Lightweight 3D Tilt Physics & Vault Door Login Opening Animation -->
+  <script>
+    (function () {
+      var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var isCoarse = window.matchMedia('(pointer: coarse)').matches;
+
+      // 1. 3D Mouse-Move Tilt on Summary Cards & Smart Savings Advisor
+      if (!reducedMotion && !isCoarse) {
+        function attachTilt(el, maxTilt, liftZ) {
+          if (!el || el.dataset.vxTiltBound) return;
+          el.dataset.vxTiltBound = '1';
+          el.addEventListener('mousemove', function (e) {
+            var rect = el.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            var x = (e.clientX - rect.left) / rect.width - 0.5;
+            var y = (e.clientY - rect.top) / rect.height - 0.5;
+            var rotX = (-y * maxTilt).toFixed(2);
+            var rotY = (x * maxTilt).toFixed(2);
+            el.style.setProperty('--gx', ((x + 0.5) * 100).toFixed(1) + '%');
+            el.style.setProperty('--gy', ((y + 0.5) * 100).toFixed(1) + '%');
+            el.style.transform = 'perspective(1200px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg) translateZ(' + liftZ + 'px)';
+          });
+          el.addEventListener('mouseleave', function () {
+            el.style.transform = '';
+          });
+        }
+        function initVaultixTilt() {
+          document.querySelectorAll('.summary-box .card').forEach(function (card) {
+            attachTilt(card, 7, 10);
+          });
+          attachTilt(document.getElementById('advisorSection'), 3.2, 6);
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initVaultixTilt);
+        } else {
+          initVaultixTilt();
+        }
+      }
+
+      // 2. 3D Metallic Vault Door Opening Animation when Logging In (#appSection becomes visible)
+      var appSec = document.getElementById('appSection');
+      var vaultOverlay = document.getElementById('vaultUnlockOverlay');
+      var vaultLabel = document.getElementById('vaultDoorStatusLabel');
+      if (appSec && vaultOverlay && !reducedMotion && typeof MutationObserver !== 'undefined') {
+        var wasAppVisible = appSec.style.display !== 'none';
+        var hideTimer = null;
+        var labelTimer = null;
+
+        function playVaultOpening() {
+          clearTimeout(hideTimer);
+          clearTimeout(labelTimer);
+          vaultOverlay.classList.remove('is-opening');
+          vaultOverlay.style.display = 'flex';
+          if (vaultLabel) vaultLabel.textContent = 'UNLOCKING VAULT...';
+          // Force reflow before starting 3D bolt retract + door swing animation
+          void vaultOverlay.offsetWidth;
+          vaultOverlay.classList.add('is-opening');
+          appSec.classList.remove('vault-app-reveal');
+          void appSec.offsetWidth;
+          appSec.classList.add('vault-app-reveal');
+
+          labelTimer = setTimeout(function () {
+            if (vaultLabel) vaultLabel.textContent = 'ACCESS GRANTED';
+          }, 420);
+
+          hideTimer = setTimeout(function () {
+            vaultOverlay.style.display = 'none';
+            vaultOverlay.classList.remove('is-opening');
+            appSec.classList.remove('vault-app-reveal');
+          }, 1550);
+        }
+
+        var observer = new MutationObserver(function () {
+          var isNowVisible = appSec.style.display !== 'none' && getComputedStyle(appSec).display !== 'none';
+          if (!wasAppVisible && isNowVisible) {
+            playVaultOpening();
+          }
+          wasAppVisible = isNowVisible;
+        });
+        observer.observe(appSec, { attributes: true, attributeFilter: ['style'] });
+      }
+    })();
+  </script>
   
   <!-- PWA Service Worker Registration -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=5.2')
+        navigator.serviceWorker.register('./sw.js?v=6.1')
           .then(reg => {
             reg.update(); // Force immediate update
             console.log('SmartFlow PWA ServiceWorker active:', reg.scope);

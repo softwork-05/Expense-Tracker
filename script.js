@@ -1509,6 +1509,69 @@ function getTransactionMonthKey(item) {
   return getCurrentMonthKey();
 }
 
+// Helper: Clean & format user display name from email address if not provided
+function formatNameFromEmail(email) {
+  if (!email || typeof email !== 'string') return 'User';
+  const prefix = email.split('@')[0];
+  if (!prefix) return 'User';
+  // Replace symbols like dots, hyphens, underscores, pluses with spaces
+  const cleaned = prefix.replace(/[._\-+]/g, ' ').trim();
+  if (!cleaned) return 'User';
+  return cleaned
+    .split(' ')
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+window.formatNameFromEmail = formatNameFromEmail;
+
+// User self-service: Prompt user to edit/set their Display Name
+async function promptEditMyDisplayName() {
+  if (!currentUser) return;
+  const nameTagEl = document.getElementById('userDisplayNameTag');
+  const currentName = (nameTagEl?.innerText || formatNameFromEmail(currentUser.email)).trim();
+
+  const entered = prompt(
+    currentLang === 'ur'
+      ? "Apna Display Name darj karein:"
+      : "Enter your Display Name:",
+    currentName
+  );
+
+  if (entered === null) return;
+  const cleanName = entered.trim();
+  if (!cleanName) {
+    showToast(currentLang === 'ur' ? "Naam khali nahi ho sakta." : "Display name cannot be empty.", "warning");
+    return;
+  }
+
+  try {
+    if (currentUser.updateProfile) {
+      await currentUser.updateProfile({ displayName: cleanName });
+    }
+    await db.collection('users').doc(currentUser.uid).set({
+      displayName: cleanName,
+      email: currentUser.email || '',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    if (nameTagEl) nameTagEl.innerText = cleanName;
+
+    const savedPhoto = localStorage.getItem('smartflow_avatar_' + currentUser.uid);
+    const avatarImg = document.getElementById('userAvatarImg');
+    const avatarText = document.getElementById('userAvatar');
+    if (!savedPhoto && (!avatarImg || avatarImg.style.display === 'none') && avatarText) {
+      avatarText.innerText = cleanName.charAt(0).toUpperCase();
+    }
+
+    showToast(currentLang === 'ur' ? `Naam badal kar "${cleanName}" kar diya gaya!` : `Display name updated to "${cleanName}"!`, "success");
+  } catch (err) {
+    console.error("Error updating profile name:", err);
+    showToast("Error updating name: " + err.message, "error");
+  }
+}
+window.promptEditMyDisplayName = promptEditMyDisplayName;
+
 // ==========================================================================
 // Auth State Observer
 // ==========================================================================
@@ -1551,28 +1614,39 @@ auth.onAuthStateChanged(user => {
     const nameTagEl = document.getElementById('userDisplayNameTag');
     const emailTagEl = document.getElementById('userEmailTag');
 
-    const initialName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
-    if (nameTagEl) nameTagEl.innerText = initialName;
+    const derivedName = user.displayName || formatNameFromEmail(user.email);
+    if (nameTagEl) nameTagEl.innerText = derivedName;
     if (emailTagEl) emailTagEl.innerText = emailDisplay;
 
     // Fetch user profile from Firestore to display updated Custom Display Name
     db.collection('users').doc(user.uid).get().then(doc => {
-      let finalName = initialName;
+      let finalName = derivedName;
+      let hasStoredName = false;
       if (doc.exists) {
         const udata = doc.data() || {};
-        if (udata.displayName) {
-          finalName = udata.displayName;
+        if (udata.displayName && udata.displayName.trim() && udata.displayName !== 'User') {
+          finalName = udata.displayName.trim();
+          hasStoredName = true;
         }
       }
       if (nameTagEl) nameTagEl.innerText = finalName;
       if (emailTagEl) emailTagEl.innerText = user.email || '';
+
+      // Auto-populate displayName in users doc if missing or empty so admin and user always see proper name
+      if (!hasStoredName && finalName && finalName !== 'User') {
+        db.collection('users').doc(user.uid).set({
+          displayName: finalName,
+          email: user.email || 'Anonymous',
+          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(() => {});
+      }
 
       // Update avatar letter if no photo saved
       const savedPhoto = localStorage.getItem('smartflow_avatar_' + user.uid);
       const avatarImg = document.getElementById('userAvatarImg');
       const avatarText = document.getElementById('userAvatar');
       if (!savedPhoto && (!avatarImg || avatarImg.style.display === 'none') && avatarText) {
-        avatarText.innerText = finalName.charAt(0).toUpperCase();
+        avatarText.innerText = (finalName.charAt(0) || 'U').toUpperCase();
       }
     }).catch(err => console.log("User doc read notice:", err));
 
@@ -2826,6 +2900,11 @@ function clearSearchFilter() {
   }
 }
 
+function handleSearchInput() {
+  filterTransactions();
+}
+window.handleSearchInput = handleSearchInput;
+
 function renderTransactionsTable(sourceTransactions) {
   const baseList = sourceTransactions || currentTransactions.filter(item => {
     if (activeMonthKey === 'ALL') return true;
@@ -2849,6 +2928,58 @@ function renderTransactionsTable(sourceTransactions) {
     return matchesSearch && matchesType;
   });
 
+  // Calculate live dynamic sums for matched entries
+  let filteredIncome = 0;
+  let filteredExpense = 0;
+  filtered.forEach(it => {
+    const amt = Number(it.amount) || 0;
+    if (it.type === 'IN') {
+      filteredIncome += amt;
+    } else {
+      filteredExpense += amt;
+    }
+  });
+  const filteredGross = filteredIncome + filteredExpense;
+  const filteredNet = filteredIncome - filteredExpense;
+
+  // Update History Row Count Badge
+  const rowCountBadge = document.getElementById('historyRowCount');
+  if (rowCountBadge) {
+    rowCountBadge.innerText = `${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'}`;
+  }
+
+  // Update Dynamic Search & Filter Sum Card
+  const searchSummaryCard = document.getElementById('historySearchSummary');
+  const hssLabel = document.getElementById('hssLabel');
+  const hssMatchCount = document.getElementById('hssMatchCount');
+  const hssTotalSum = document.getElementById('hssTotalSum');
+  const hssIncomeSum = document.getElementById('hssIncomeSum');
+  const hssExpenseSum = document.getElementById('hssExpenseSum');
+  const hssNetSum = document.getElementById('hssNetSum');
+
+  if (searchSummaryCard) {
+    searchSummaryCard.style.display = 'flex';
+    if (hssMatchCount) hssMatchCount.innerText = `${filtered.length} item${filtered.length === 1 ? '' : 's'}`;
+    if (hssTotalSum) hssTotalSum.innerText = 'Rs. ' + filteredGross.toLocaleString();
+    if (hssIncomeSum) hssIncomeSum.innerText = '+ Rs. ' + filteredIncome.toLocaleString();
+    if (hssExpenseSum) hssExpenseSum.innerText = '- Rs. ' + filteredExpense.toLocaleString();
+    if (hssNetSum) {
+      const netPrefix = filteredNet > 0 ? '+ ' : (filteredNet < 0 ? '- ' : '');
+      hssNetSum.innerText = `${netPrefix}Rs. ${Math.abs(filteredNet).toLocaleString()}`;
+      hssNetSum.className = filteredNet >= 0 ? 'hss-val hss-val-net-pos' : 'hss-val hss-val-net-neg';
+    }
+
+    if (hssLabel) {
+      if (searchQuery) {
+        hssLabel.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Matched: "<strong>${escapeHtml(searchQuery)}</strong>" (${filtered.length} entries sum):`;
+      } else if (typeFilter !== 'ALL') {
+        hssLabel.innerHTML = `<i class="fa-solid fa-filter"></i> Category: <strong>${escapeHtml(typeFilter)}</strong> (${filtered.length} entries sum):`;
+      } else {
+        hssLabel.innerHTML = `<i class="fa-solid fa-calculator"></i> Active Log Total (${filtered.length} records):`;
+      }
+    }
+  }
+
   const isUrdu = currentLang === 'ur';
 
   if (filtered.length === 0) {
@@ -2856,7 +2987,9 @@ function renderTransactionsTable(sourceTransactions) {
       emptyState.style.display = 'block';
       const emptyP = emptyState.querySelector('p');
       if (emptyP) {
-        if (activeMonthKey === 'ALL') {
+        if (searchQuery) {
+          emptyP.innerText = isUrdu ? `"${searchQuery}" ke liye koi transaction nahi mili.` : `No transactions found matching "${searchQuery}".`;
+        } else if (activeMonthKey === 'ALL') {
           emptyP.innerText = isUrdu ? "Tamam records me koi transaction nahi mili." : "No transactions found across all time.";
         } else {
           emptyP.innerText = isUrdu ? `${formatMonthLabel(activeMonthKey)} ke liye koi transaction record nahi hui.` : `No transactions recorded for ${formatMonthLabel(activeMonthKey)}.`;
@@ -2910,11 +3043,63 @@ function renderTransactionsTable(sourceTransactions) {
 }
 
 function deleteTransaction(docId) {
-  if (confirm("Are you sure you want to delete this transaction record?")) {
+  if (!currentUser) return;
+  const isUrdu = currentLang === 'ur';
+  const confirmMsg = isUrdu 
+    ? "Kya aap waqai is transaction record ko delete karna chahte hain?" 
+    : "Are you sure you want to delete this transaction record?";
+
+  if (confirm(confirmMsg)) {
+    // Locate transaction in memory to build audit trail
+    const tx = currentTransactions.find(t => t.id === docId);
+    const amountVal = tx ? (Number(tx.amount) || 0) : 0;
+    const titleVal = tx ? (tx.title || 'Untitled') : 'Deleted Record';
+    const typeVal = tx ? (tx.type || 'OUT') : 'OUT';
+    const timeVal = tx ? (tx.timestamp || 'Just now') : 'Just now';
+    const timeMillisVal = tx ? (tx.timestampMillis || Date.now()) : Date.now();
+    const monthKeyVal = tx ? (tx.monthKey || tx.computedMonthKey || '') : '';
+    const userEmailVal = currentUser.email || 'Anonymous';
+    const userNameVal = document.getElementById('userDisplayNameTag')?.innerText || formatNameFromEmail(userEmailVal);
+
+    const deletedRecordPayload = {
+      id: docId,
+      originalId: docId,
+      userId: currentUser.uid,
+      userEmail: userEmailVal,
+      userName: userNameVal,
+      title: titleVal,
+      amount: amountVal,
+      type: typeVal,
+      timestamp: timeVal,
+      timestampMillis: timeMillisVal,
+      monthKey: monthKeyVal,
+      deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      deletedAtMillis: Date.now(),
+      deletedAtStr: new Date().toLocaleString(),
+      deletedByUid: currentUser.uid,
+      deletedByEmail: userEmailVal,
+      status: 'DELETED',
+      isDeleted: true
+    };
+
+    // 1. Write to deleted_transactions collection for admin audit
+    db.collection('deleted_transactions').doc(docId).set(deletedRecordPayload)
+      .catch(err => console.log("Deleted audit log write notice:", err));
+
+    // 2. Mark in all_transactions as deleted
+    db.collection('all_transactions').doc(docId).set({
+      isDeleted: true,
+      deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      deletedAtStr: new Date().toLocaleString(),
+      deletedByUid: currentUser.uid,
+      deletedByEmail: userEmailVal,
+      userName: userNameVal
+    }, { merge: true }).catch(() => {});
+
+    // 3. Delete from user's private collection
     db.collection('users').doc(currentUser.uid).collection('transactions').doc(docId).delete()
       .then(() => {
-        db.collection('all_transactions').doc(docId).delete().catch(() => {});
-        showToast("Transaction deleted", "info");
+        showToast(isUrdu ? "Transaction kamyabi se delete ho gayi" : "Transaction deleted successfully", "info");
       })
       .catch(err => {
         showToast("Error deleting: " + err.message, "error");
@@ -3904,7 +4089,8 @@ setInterval(() => {
 
 let allSystemTransactions = []; // Cached master records
 let allSystemUsers = [];        // Cached user directory
-let currentAdminTab = 'ledger'; // 'ledger' or 'users'
+let allSystemDeletedTransactions = []; // Cached deleted records audit trail
+let currentAdminTab = 'ledger'; // 'ledger', 'users', or 'deleted'
 
 function openAdminModal() {
   if (!isPCDesktopView()) {
@@ -3927,37 +4113,46 @@ function switchAdminTab(tabName) {
   currentAdminTab = tabName;
   const ledgerView = document.getElementById('adminLedgerView');
   const usersView = document.getElementById('adminUsersView');
+  const deletedView = document.getElementById('adminDeletedView');
   const ledgerBtn = document.getElementById('adminTabLedgerBtn');
   const usersBtn = document.getElementById('adminTabUsersBtn');
+  const deletedBtn = document.getElementById('adminTabDeletedBtn');
+
+  if (ledgerView) ledgerView.style.display = tabName === 'ledger' ? 'flex' : 'none';
+  if (usersView) usersView.style.display = tabName === 'users' ? 'flex' : 'none';
+  if (deletedView) deletedView.style.display = tabName === 'deleted' ? 'flex' : 'none';
+
+  if (ledgerBtn) ledgerBtn.classList.toggle('active', tabName === 'ledger');
+  if (usersBtn) usersBtn.classList.toggle('active', tabName === 'users');
+  if (deletedBtn) deletedBtn.classList.toggle('active', tabName === 'deleted');
 
   if (tabName === 'ledger') {
-    if (ledgerView) ledgerView.style.display = 'flex';
-    if (usersView) usersView.style.display = 'none';
-    if (ledgerBtn) ledgerBtn.classList.add('active');
-    if (usersBtn) usersBtn.classList.remove('active');
-  } else {
-    if (ledgerView) ledgerView.style.display = 'none';
-    if (usersView) usersView.style.display = 'flex';
-    if (ledgerBtn) ledgerBtn.classList.remove('active');
-    if (usersBtn) usersBtn.classList.add('active');
+    renderAdminTable(allSystemTransactions);
+  } else if (tabName === 'users') {
     renderAdminUsersTable(allSystemUsers);
+  } else if (tabName === 'deleted') {
+    renderAdminDeletedTable(allSystemDeletedTransactions);
   }
 }
+window.switchAdminTab = switchAdminTab;
 
 async function loadAdminAllTransactions(forceRefresh = false) {
   if (allSystemTransactions.length > 0 && !forceRefresh) {
     renderAdminTable(allSystemTransactions);
     renderAdminUsersTable(allSystemUsers);
+    renderAdminDeletedTable(allSystemDeletedTransactions);
     return;
   }
 
   const loading = document.getElementById('adminLoadingState');
   const txTbody = document.getElementById('adminTransactionsTableBody');
   const userTbody = document.getElementById('adminUsersTableBody');
+  const delTbody = document.getElementById('adminDeletedTransactionsTableBody');
 
   if (loading) loading.style.display = 'flex';
   if (txTbody) txTbody.innerHTML = '';
   if (userTbody) userTbody.innerHTML = '';
+  if (delTbody) delTbody.innerHTML = '';
 
   try {
     // 1. Fetch all registered user accounts from Firestore 'users' collection
@@ -3970,10 +4165,11 @@ async function loadAdminAllTransactions(forceRefresh = false) {
     usersSnap.forEach(doc => {
       allUniqueUserIds.add(doc.id);
       const uData = doc.data() || {};
+      const fallbackName = formatNameFromEmail(uData.email);
       userMap[doc.id] = {
         uid: doc.id,
         email: uData.email || '',
-        displayName: uData.displayName || (uData.email ? uData.email.split('@')[0] : ''),
+        displayName: uData.displayName || fallbackName,
         password: uData.password || '',
         assignedByAdmin: !!uData.assignedByAdmin,
         lastSeen: uData.lastSeen || null
@@ -4002,9 +4198,10 @@ async function loadAdminAllTransactions(forceRefresh = false) {
 
       if (email && email !== 'Anonymous' && isValidEmail(email)) {
         isMapped = true;
+        name = name || formatNameFromEmail(email);
       } else if (userMap[uid] && userMap[uid].email) {
         email = userMap[uid].email;
-        name = userMap[uid].displayName || userMap[uid].email.split('@')[0];
+        name = userMap[uid].displayName || formatNameFromEmail(userMap[uid].email);
         isMapped = true;
       } else {
         email = uid.length > 14 ? (uid.substring(0, 10) + '...') : uid;
@@ -4047,7 +4244,7 @@ async function loadAdminAllTransactions(forceRefresh = false) {
       usersList.push({
         uid: uid,
         email: existing.email || '',
-        displayName: existing.displayName || (existing.email ? existing.email.split('@')[0] : 'Unassigned User'),
+        displayName: existing.displayName || formatNameFromEmail(existing.email),
         password: existing.password || '',
         isMapped: Boolean(existing.email && existing.email !== 'Anonymous' && isValidEmail(existing.email)),
         txCount: userTxCountMap[uid] || 0,
@@ -4059,14 +4256,49 @@ async function loadAdminAllTransactions(forceRefresh = false) {
     usersList.sort((a, b) => b.txCount - a.txCount);
     allSystemUsers = usersList;
 
-    // 4. Update Quick Stat Cards
+    // 4. Fetch Deleted Transactions from Firestore 'deleted_transactions' collection
+    const deletedRecords = [];
+    try {
+      const deletedSnap = await db.collection('deleted_transactions').get();
+      deletedSnap.forEach(doc => {
+        const data = doc.data() || {};
+        const uid = data.userId || data.uid || data.deletedByUid || 'Unknown';
+        let email = data.userEmail || (userMap[uid] ? userMap[uid].email : 'Anonymous');
+        let name = data.userName || (userMap[uid] ? userMap[uid].displayName : formatNameFromEmail(email));
+
+        deletedRecords.push({
+          id: doc.id,
+          originalId: data.originalId || doc.id,
+          uid: uid,
+          userEmail: email,
+          userName: name,
+          title: data.title || 'Untitled Record',
+          amount: Number(data.amount) || 0,
+          type: (data.type || 'OUT').toUpperCase(),
+          timestamp: data.timestamp || 'Previous Record',
+          deletedAtStr: data.deletedAtStr || (data.deletedAt && data.deletedAt.toDate ? data.deletedAt.toDate().toLocaleString() : 'Recently Deleted'),
+          deletedAtMillis: data.deletedAtMillis || (data.deletedAt && data.deletedAt.toMillis ? data.deletedAt.toMillis() : Date.now()),
+          deletedByEmail: data.deletedByEmail || email,
+          status: data.status || 'DELETED'
+        });
+      });
+    } catch (e) {
+      console.log("Deleted transactions read notice:", e);
+    }
+
+    deletedRecords.sort((a, b) => (b.deletedAtMillis || 0) - (a.deletedAtMillis || 0));
+    allSystemDeletedTransactions = deletedRecords;
+
+    // 5. Update Quick Stat Cards & Tab Badges
     const totalUsersCount = allUniqueUserIds.size;
     const usersCountEl = document.getElementById('adminTotalUsers');
     const totalEntriesEl = document.getElementById('adminTotalEntries');
     const totalIncomeEl = document.getElementById('adminTotalIncome');
     const totalExpenseEl = document.getElementById('adminTotalExpense');
+    const totalDeletedEl = document.getElementById('adminTotalDeleted');
     const tabTxCountEl = document.getElementById('adminTabTxCount');
     const tabUserCountEl = document.getElementById('adminTabUserCount');
+    const tabDeletedCountEl = document.getElementById('adminTabDeletedCount');
 
     if (usersCountEl) usersCountEl.innerText = totalUsersCount;
     if (tabUserCountEl) tabUserCountEl.innerText = totalUsersCount;
@@ -4074,14 +4306,17 @@ async function loadAdminAllTransactions(forceRefresh = false) {
     if (tabTxCountEl) tabTxCountEl.innerText = records.length;
     if (totalIncomeEl) totalIncomeEl.innerText = 'Rs. ' + systemTotalIncome.toLocaleString();
     if (totalExpenseEl) totalExpenseEl.innerText = 'Rs. ' + systemTotalExpense.toLocaleString();
+    if (totalDeletedEl) totalDeletedEl.innerText = deletedRecords.length;
+    if (tabDeletedCountEl) tabDeletedCountEl.innerText = deletedRecords.length;
 
-    // 5. Sort all transactions newest first
+    // 6. Sort all transactions newest first
     records.sort((a, b) => (b.timestampMillis || 0) - (a.timestampMillis || 0));
     allSystemTransactions = records;
 
-    // 6. Render views
+    // 7. Render views
     renderAdminTable(allSystemTransactions);
     renderAdminUsersTable(allSystemUsers);
+    renderAdminDeletedTable(allSystemDeletedTransactions);
 
   } catch (err) {
     console.error("Error loading master transactions:", err);
@@ -4135,7 +4370,10 @@ function renderAdminTable(records) {
         <td>
           <div class="admin-user-pill" title="User ID: ${escapeHtml(item.uid)}">
             <i class="fa-solid ${item.isMapped ? 'fa-user-check' : 'fa-id-badge'}"></i>
-            <span>${escapeHtml(item.userEmail)}</span>
+            <div class="admin-user-info-stack">
+              <strong class="admin-user-name">${escapeHtml(item.userName || formatNameFromEmail(item.userEmail))}</strong>
+              <span class="admin-user-subemail">${escapeHtml(item.userEmail)}</span>
+            </div>
             ${assignBtn}
           </div>
         </td>
@@ -4149,6 +4387,103 @@ function renderAdminTable(records) {
     `;
   }).join('');
 }
+
+function renderAdminDeletedTable(records) {
+  const tbody = document.getElementById('adminDeletedTransactionsTableBody');
+  const countSpan = document.getElementById('adminDeletedRecordCount');
+  if (!tbody) return;
+
+  const list = records || allSystemDeletedTransactions;
+  if (countSpan) countSpan.innerText = `Showing ${list.length} deleted audit records`;
+
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px;">
+      <i class="fa-solid fa-trash-can" style="font-size: 2rem; color: #475569; margin-bottom: 8px; display: block;"></i>
+      No deleted transactions found in audit log. All records are active.
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map((item, index) => {
+    let catClass = 'cat-variable';
+    let catLabel = 'Expense (OUT)';
+    let amtColor = '#f87171';
+    let amtSign = '-';
+
+    if (item.type === 'IN') {
+      catClass = 'cat-income';
+      catLabel = 'Income (IN)';
+      amtColor = '#34d399';
+      amtSign = '+';
+    } else if (item.type === 'PERMANENT') {
+      catClass = 'cat-permanent';
+      catLabel = 'Fixed Monthly';
+      amtColor = '#facc15';
+      amtSign = '-';
+    }
+
+    return `
+      <tr class="row-deleted-entry">
+        <td style="color: #64748b; font-weight: 600;">${index + 1}</td>
+        <td>
+          <div class="admin-user-pill" title="User UID: ${escapeHtml(item.uid)}">
+            <i class="fa-solid fa-user"></i>
+            <div class="admin-user-info-stack">
+              <strong class="admin-user-name">${escapeHtml(item.userName || formatNameFromEmail(item.userEmail))}</strong>
+              <span class="admin-user-subemail">${escapeHtml(item.userEmail)}</span>
+            </div>
+          </div>
+        </td>
+        <td style="color: #cbd5e1; font-size: 0.8rem;">
+          <div style="font-weight: 600; color: #f43f5e;"><i class="fa-solid fa-trash-arrow-up"></i> ${escapeHtml(item.deletedAtStr || 'Recently')}</div>
+          <div style="font-size: 0.72rem; color: #64748b;">Orig: ${escapeHtml(item.timestamp || 'N/A')}</div>
+        </td>
+        <td>
+          <strong style="color: #e2e8f0; text-decoration: line-through; opacity: 0.85;">${escapeHtml(item.title)}</strong>
+        </td>
+        <td><span class="admin-cat-pill ${catClass}">${catLabel}</span></td>
+        <td style="text-align: right; font-weight: 700; color: ${amtColor}; font-size: 0.95rem; text-decoration: line-through;">
+          ${amtSign}Rs. ${item.amount.toLocaleString()}
+        </td>
+        <td style="text-align: center;">
+          <span class="badge-deleted-audit" title="Permanently retained in Admin audit log">
+            <i class="fa-solid fa-shield-halved"></i> DELETED
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterAdminDeletedTable() {
+  const query = (document.getElementById('adminDeletedSearchInput')?.value || '').toLowerCase().trim();
+  if (!query) {
+    renderAdminDeletedTable(allSystemDeletedTransactions);
+    return;
+  }
+  const filtered = allSystemDeletedTransactions.filter(item => {
+    return (item.title && item.title.toLowerCase().includes(query)) ||
+           (item.userEmail && item.userEmail.toLowerCase().includes(query)) ||
+           (item.userName && item.userName.toLowerCase().includes(query)) ||
+           (item.amount && item.amount.toString().includes(query));
+  });
+  renderAdminDeletedTable(filtered);
+}
+
+function clearAdminDeletedSearch() {
+  const input = document.getElementById('adminDeletedSearchInput');
+  if (input) {
+    input.value = '';
+    const clearBtn = document.getElementById('clearAdminDeletedSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    filterAdminDeletedTable();
+    input.focus();
+  }
+}
+window.renderAdminDeletedTable = renderAdminDeletedTable;
+window.filterAdminDeletedTable = filterAdminDeletedTable;
+window.clearAdminDeletedSearch = clearAdminDeletedSearch;
+window.clearAdminDeletedSearchFilter = clearAdminDeletedSearch;
 
 function renderAdminUsersTable(users) {
   const tbody = document.getElementById('adminUsersTableBody');
