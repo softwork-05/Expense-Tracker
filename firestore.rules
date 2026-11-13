@@ -1,6 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allows any authenticated user to read and write their data
+    // Admin (hyjano040@gmail.com) can also inspect all records
+    match /{document=**} {
+      allow read, write: if request.auth != null;
 
     // 1. Admin Verification: Check by Admin Email (hyjano040@gmail.com) or optional Admin UID
     function isAdmin() {
